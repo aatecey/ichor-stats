@@ -1,0 +1,16 @@
+application:
+  PORT: 8083
+
+database:
+  HOST: localhost
+  PORT: 5432
+  SCHEMA: users_assessment
+  USERNAME: admin
+  PASSWORD: password
+
+cache:
+  resource:
+    SERVER: :6379
+    TIMEOUT_IN_MINUTES: 10
+    MAX_IDLE_CONNECTIONS: 80
+    MAX_ACTIVE_CONNECTIONS: 12000
