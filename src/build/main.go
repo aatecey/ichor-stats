@@ -1,4 +1,4 @@
-package build
+package main
 
 import (
 	_application "ichor-stats/src/app/application/implementation"
