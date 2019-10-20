@@ -6,9 +6,9 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/tylerb/graceful"
 	"ichor-stats/src/app/application"
-	"ichor-stats/src/app/services/api"
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord"
+	"ichor-stats/src/app/services/faceit"
 	"log"
 	"net/http"
 	"time"
@@ -59,6 +59,6 @@ func initializeServices(echo *echo.Echo) {
 
 	discordService := discord.NewDiscordService(appConfig)
 
-	faceitService := api.NewFaceitService(appConfig, discordService)
-	api.NewFaceitHandler(echo, faceitService)
+	faceitService := faceit.NewFaceitService(appConfig, discordService)
+	faceit.NewFaceitHandler(echo, faceitService)
 }
