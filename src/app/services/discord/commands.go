@@ -2,9 +2,9 @@ package discord
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/bwmarrin/discordgo"
-	"ichor-stats/src/app/services/api"
+	"ichor-stats/src/app/models/faceit"
+	"ichor-stats/src/app/services/config"
 	"log"
 	"net/http"
 	"strconv"
@@ -21,7 +21,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		url := "https://open.faceit.com/data/v4/players/" + requesterID + "/stats/csgo"
 
 		// Create a Bearer string by appending string access token
-		var bearer = "Bearer " + api.FACEIT_API_KEY
+		var bearer = "Bearer " + config.GetConfig().FACEIT_API_KEY
 
 		// Create a new request using http
 		req, err := http.NewRequest("GET", url, nil)
@@ -36,7 +36,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			log.Println("Error on response.\n[ERRO] -", err)
 		}
 
-		var stats Stats
+		var stats faceit.Stats
 		err = json.NewDecoder(resp.Body).Decode(&stats)
 		if err != nil {
 			log.Println(err)
@@ -54,7 +54,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			log.Println("Error on response.\n[ERRO] -", err)
 		}
 
-		var user User
+		var user faceit.User
 		err = json.NewDecoder(resp.Body).Decode(&user)
 		if err != nil {
 			log.Println(err)
@@ -86,7 +86,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				},
 			},
 		}
-		_, err = s.ChannelMessageSendEmbed(api.CHANNEL_ID, &embed)
+		_, err = s.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, &embed)
 		if err != nil {
 			log.Println(err)
 		}
@@ -103,40 +103,4 @@ func GetRequesterID(discordID string) string {
 	}
 
 	return ""
-}
-
-type User struct {
-	Games       Games `json:"games"`
-}
-
-type Games struct {
-	CSGO       CSGO `json:"csgo"`
-}
-
-type CSGO struct {
-	SkillLevel int `json:"skill_level"`
-	ELO        int `json:"faceit_elo"`
-	Name       string `json:"game_player_name"`
-}
-
-type Stats struct {
-	ID       string `json:"player_id"`
-	Lifetime Lifetime `json:"lifetime"`
-}
-
-type Lifetime struct {
-	AverageHeadshots    string `json:"Average Headshots %"`
-	AverageKD           string `json:"Average K/D Ratio"`
-}
-
-func SendMessage(message string) {
-	discord, err := discordgo.New("Bot " + api.DISCORD_BOT_ID)
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	_, err = discord.ChannelMessageSend(api.CHANNEL_ID, message)
-	if err != nil {
-		fmt.Println(err)
-	}
 }

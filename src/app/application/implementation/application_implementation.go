@@ -2,12 +2,12 @@ package implementation
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/tylerb/graceful"
 	"ichor-stats/src/app/application"
 	"ichor-stats/src/app/services/api"
+	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord"
 	"log"
 	"net/http"
@@ -24,9 +24,15 @@ func NewApplication() application.Application {
 
 func (a *app) Run() {
 	echo := initialize()
+	initializeServices(echo)
 	initializeMiddleWare(echo)
-	log.Println("Service listening on " + echo.Server.Addr)
 
+	loadedConfig := config.GetConfig()
+	log.Println(loadedConfig.DISCORD_BOT_ID)
+	log.Println(loadedConfig.CHANNEL_ID)
+	log.Println(loadedConfig.FACEIT_API_KEY)
+
+	log.Println("Service listening on " + echo.Server.Addr)
 	err := graceful.ListenAndServe(echo.Server, 5 * time.Second)
 	if err != nil {
 		fmt.Println(err)
@@ -43,27 +49,16 @@ func initializeMiddleWare(e *echo.Echo) {
 }
 
 func initialize() *echo.Echo {
-
 	echo := echo.New()
 	echo.Server.Addr = ":" + "5000"
-
-	api.NewFaceitHandler(echo)
-
-	discordgo, err := discordgo.New("Bot " + "NjM0NzI2MTI1Nzk2NDU4NTA3.XauI2A.WgtyCNjHY_kvnPjVdLMepNFjeFg")
-	if err != nil {
-		fmt.Println(err)
-	}
-
-	// Register messageCreate as a callback for the messageCreate events.
-	discordgo.AddHandler(discord.MessageCreate)
-
-	// Open the websocket and begin listening.
-	err = discordgo.Open()
-	if err != nil {
-		fmt.Println("Error opening Discord session: ", err)
-	} else {
-		fmt.Println("Discord websocket open")
-	}
-
 	return echo
+}
+
+func initializeServices(echo *echo.Echo) {
+	appConfig := config.GetConfig()
+
+	discordService := discord.NewDiscordService(appConfig)
+
+	faceitService := api.NewFaceitService(appConfig, discordService)
+	api.NewFaceitHandler(echo, faceitService)
 }
