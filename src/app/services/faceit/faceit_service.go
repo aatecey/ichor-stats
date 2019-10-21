@@ -69,3 +69,69 @@ func (fs *ServiceFaceit) MatchEnd(webhook faceit.Webhook) error {
 	fs.DiscordService.SendMessage("Match ended")
 	return nil
 }
+
+func (fs *ServiceFaceit) MatchStart(webhook faceit.Webhook) error {
+	url := "https://open.faceit.com/data/v4/matches/" + webhook.Payload.MatchID + "/stats"
+
+	// Create a Bearer string by appending string access token
+	var bearer = "Bearer " + fs.Config.FACEIT_API_KEY
+
+	// Create a new request using http
+	req, err := http.NewRequest("GET", url, nil)
+
+	// add authorization header to the req
+	req.Header.Add("Authorization", bearer)
+
+	// Send req using http Client
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Error on response.\n[ERRO] -", err)
+	}
+
+	var stats faceit.Match
+	err = json.NewDecoder(resp.Body).Decode(&stats)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	log.Println(&stats)
+	log.Println(stats)
+
+	fs.DiscordService.SendMessage("Match Started")
+	return nil
+}
+
+func (fs *ServiceFaceit) MatchReady(webhook faceit.Webhook) error {
+	url := "https://open.faceit.com/data/v4/matches/" + webhook.Payload.MatchID + "/stats"
+
+	// Create a Bearer string by appending string access token
+	var bearer = "Bearer " + fs.Config.FACEIT_API_KEY
+
+	// Create a new request using http
+	req, err := http.NewRequest("GET", url, nil)
+
+	// add authorization header to the req
+	req.Header.Add("Authorization", bearer)
+
+	// Send req using http Client
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Println("Error on response.\n[ERRO] -", err)
+	}
+
+	var stats faceit.Match
+	err = json.NewDecoder(resp.Body).Decode(&stats)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
+	log.Println(&stats)
+	log.Println(stats)
+
+	fs.DiscordService.SendMessage("Match Found and Ready!")
+	return nil
+}
