@@ -5,6 +5,9 @@ import (
 	"github.com/bwmarrin/discordgo"
 	"ichor-stats/src/app/models/faceit"
 	"ichor-stats/src/app/services/config"
+	"ichor-stats/src/app/services/discord/helpers"
+	"ichor-stats/src/package/api"
+	client "ichor-stats/src/package/http"
 	"log"
 	"net/http"
 	"strconv"
@@ -18,75 +21,59 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	if strings.HasPrefix(m.Content, "!stats") {
 		requesterID := GetRequesterID(m.Author.ID)
-		url := "https://open.faceit.com/data/v4/players/" + requesterID + "/stats/csgo"
 
 		// Create a Bearer string by appending string access token
 		var bearer = "Bearer " + config.GetConfig().FACEIT_API_KEY
-
-		// Create a new request using http
-		req, err := http.NewRequest("GET", url, nil)
+		req, err := http.NewRequest("GET", api.GetFaceitPlayerCsgoStats(requesterID), nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 
 		// add authorization header to the req
 		req.Header.Add("Authorization", bearer)
 
-		// Send req using http Client
-		client := &http.Client{}
-		resp, err := client.Do(req)
+		response, err := client.Fire(req)
 		if err != nil {
-			log.Println("Error on response.\n[ERRO] -", err)
+			log.Println(err)
+			return
 		}
 
 		var stats faceit.Stats
-		err = json.NewDecoder(resp.Body).Decode(&stats)
+		err = json.NewDecoder(response.Body).Decode(&stats)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		url = "https://open.faceit.com/data/v4/players/" + requesterID
-		req, err = http.NewRequest("GET", url, nil)
+		req, err = http.NewRequest("GET", api.GetFaceitPlayerStats(requesterID), nil)
+		if err != nil {
+			log.Println(err)
+			return
+		}
 		req.Header.Add("Authorization", bearer)
 
-		// Send req using http Client
-		client = &http.Client{}
-		resp, err = client.Do(req)
+		response, err = client.Fire(req)
 		if err != nil {
-			log.Println("Error on response.\n[ERRO] -", err)
+			log.Println(err)
+			return
 		}
 
 		var user faceit.User
-		err = json.NewDecoder(resp.Body).Decode(&user)
+		err = json.NewDecoder(response.Body).Decode(&user)
 		if err != nil {
 			log.Println(err)
 			return
 		}
 
-		embed := discordgo.MessageEmbed{
-			Title: user.Games.CSGO.Name,
-			Fields: []*discordgo.MessageEmbedField{
-				&discordgo.MessageEmbedField{
-					Name:   "ELO",
-					Value:  strconv.Itoa(user.Games.CSGO.ELO),
-					Inline: true,
-				},
-				&discordgo.MessageEmbedField{
-					Name:   "Skill Level",
-					Value:  strconv.Itoa(user.Games.CSGO.SkillLevel),
-					Inline: true,
-				},
-				&discordgo.MessageEmbedField{
-					Name:   "Average K/D Ratio",
-					Value:  stats.Lifetime.AverageKD,
-					Inline: false,
-				},
-				&discordgo.MessageEmbedField{
-					Name:   "Average Headshots %",
-					Value:  stats.Lifetime.AverageHeadshots,
-					Inline: true,
-				},
-			},
-		}
-		_, err = s.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, &embed)
+		embed := helpers.NewEmbed().
+			SetTitle(user.Games.CSGO.Name).
+			AddField("ELO", strconv.Itoa(user.Games.CSGO.ELO), true).
+			AddField("Skill Level", strconv.Itoa(user.Games.CSGO.SkillLevel), true).
+			AddField("Average K/D Ratio", stats.Lifetime.AverageKD, false).
+			AddField("Average Headshots %", stats.Lifetime.AverageHeadshots, true)
+
+		_, err = s.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, embed.MessageEmbed)
 		if err != nil {
 			log.Println(err)
 		}

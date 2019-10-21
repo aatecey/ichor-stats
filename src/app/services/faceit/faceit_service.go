@@ -5,6 +5,8 @@ import (
 	"ichor-stats/src/app/models/config"
 	"ichor-stats/src/app/models/faceit"
 	"ichor-stats/src/app/services/discord"
+	"ichor-stats/src/package/api"
+	client "ichor-stats/src/package/http"
 	"log"
 	"net/http"
 )
@@ -22,26 +24,25 @@ func NewFaceitService(config *config.Configuration, ds discord.ServiceDiscord) S
 }
 
 func (fs *ServiceFaceit) MatchEnd(webhook faceit.Webhook) error {
-	url := "https://open.faceit.com/data/v4/matches/" + webhook.Payload.MatchID + "/stats"
 
-	// Create a Bearer string by appending string access token
+	log.Println(webhook.Payload.MatchID)
+	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhook.Payload.MatchID), nil)
+	if err != nil {
+		log.Println(err)
+		return err
+	}
+
 	var bearer = "Bearer " + fs.Config.FACEIT_API_KEY
-
-	// Create a new request using http
-	req, err := http.NewRequest("GET", url, nil)
-
-	// add authorization header to the req
 	req.Header.Add("Authorization", bearer)
 
-	// Send req using http Client
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	response, err := client.Fire(req)
 	if err != nil {
-		log.Println("Error on response.\n[ERRO] -", err)
+		log.Println(err)
+		return err
 	}
 
 	var stats faceit.Match
-	err = json.NewDecoder(resp.Body).Decode(&stats)
+	err = json.NewDecoder(response.Body).Decode(&stats)
 	if err != nil {
 		log.Println(err)
 		return err
