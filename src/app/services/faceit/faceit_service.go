@@ -7,6 +7,7 @@ import (
 	"ichor-stats/src/app/services/discord"
 	"ichor-stats/src/package/api"
 	client "ichor-stats/src/package/http"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -40,6 +41,10 @@ func (fs *ServiceFaceit) MatchEnd(webhook faceit.Webhook) error {
 		log.Println(err)
 		return err
 	}
+
+	body, err := ioutil.ReadAll(response.Body)
+	bodyString := string(body)
+	log.Println(bodyString)
 
 	var stats faceit.Match
 	err = json.NewDecoder(response.Body).Decode(&stats)

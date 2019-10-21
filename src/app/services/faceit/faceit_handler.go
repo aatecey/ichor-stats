@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/labstack/echo"
 	"ichor-stats/src/app/models/faceit"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
@@ -33,8 +34,12 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 		ctx = context.Background()
 	}
 
+	body, err := ioutil.ReadAll(c.Request().Body)
+	bodyString := string(body)
+	log.Println(bodyString)
+
 	var webhook faceit.Webhook
-	err := json.NewDecoder(c.Request().Body).Decode(&webhook)
+	err = json.NewDecoder(c.Request().Body).Decode(&webhook)
 	if err != nil {
 		log.Println(err)
 		return err
