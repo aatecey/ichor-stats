@@ -22,4 +22,6 @@ type Stats struct {
 type Lifetime struct {
 	AverageHeadshots    string `json:"Average Headshots %"`
 	AverageKD           string `json:"Average K/D Ratio"`
+	CurrentWinStreak    string `json:"Current Win Streak"`
+	RecentResults		[]string `json:"Recent Results"`
 }

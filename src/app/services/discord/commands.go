@@ -19,7 +19,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		return
 	}
 
-	if strings.HasPrefix(m.Content, "!stats") {
+	if strings.HasPrefix(m.Content, "!") {
 		requesterID := GetRequesterID(m.Author.ID)
 
 		// Create a Bearer string by appending string access token
@@ -67,13 +67,37 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		}
 
 		embed := helpers.NewEmbed().
-			SetTitle(user.Games.CSGO.Name).
-			AddField("ELO", strconv.Itoa(user.Games.CSGO.ELO), true).
-			AddField("Skill Level", strconv.Itoa(user.Games.CSGO.SkillLevel), true).
-			AddField("Average K/D Ratio", stats.Lifetime.AverageKD, false).
-			AddField("Average Headshots %", stats.Lifetime.AverageHeadshots, true)
+			SetTitle("Bot Invalid Command").
+			AddField("UNKNOWN COMMAN",  m.Content, true)
+
+		if strings.HasPrefix(m.Content, "!stats") {
+			embed = helpers.NewEmbed().
+				SetTitle(user.Games.CSGO.Name).
+				AddField("ELO", strconv.Itoa(user.Games.CSGO.ELO), true).
+				AddField("Skill Level", strconv.Itoa(user.Games.CSGO.SkillLevel), true).
+				AddField("Average K/D Ratio", stats.Lifetime.AverageKD, false).
+				AddField("Average Headshots %", stats.Lifetime.AverageHeadshots, true)
+		} else if strings.HasPrefix(m.Content, "!streak") {
+			embed = helpers.NewEmbed().
+				SetTitle(user.Games.CSGO.Name).
+				AddField("Current Win Streak", stats.Lifetime.CurrentWinStreak, true)
+		} else if strings.HasPrefix(m.Content, "!recent") {
+			var resultsArray []string
+			for _, result := range stats.Lifetime.RecentResults {
+				if result == "0" {
+					resultsArray =append(resultsArray, "L")
+				} else {
+					resultsArray =append(resultsArray, "W")
+				}
+			}
+
+			embed = helpers.NewEmbed().
+				SetTitle(user.Games.CSGO.Name).
+				AddField("Recent Results (Most recent on right)", strings.Join(resultsArray, ", "), true)
+		}
 
 		_, err = s.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, embed.MessageEmbed)
+
 		if err != nil {
 			log.Println(err)
 		}
