@@ -68,7 +68,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		embed := helpers.NewEmbed().
 			SetTitle("Bot Invalid Command").
-			AddField("UNKNOWN COMMAN",  m.Content, true)
+			AddField("UNKNOWN COMMAND",  m.Content, true)
 
 		if strings.HasPrefix(m.Content, "!stats") {
 			embed = helpers.NewEmbed().
@@ -94,6 +94,10 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			embed = helpers.NewEmbed().
 				SetTitle(user.Games.CSGO.Name).
 				AddField("Recent Results (Most recent on right)", strings.Join(resultsArray, ", "), true)
+		} else if strings.HasPrefix(m.Content, "!green") {
+			helpers.NewEmbed().
+				SetTitle("World's Best Player").
+				AddField("Will steal your wife and kids.",  m.Content, true)
 		}
 
 		_, err = s.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, embed.MessageEmbed)
