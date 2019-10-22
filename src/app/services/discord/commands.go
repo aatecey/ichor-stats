@@ -95,7 +95,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				SetTitle(user.Games.CSGO.Name).
 				AddField("Recent Results (Most recent on right)", strings.Join(resultsArray, ", "), true)
 		} else if strings.HasPrefix(m.Content, "!green") {
-			helpers.NewEmbed().
+			embed = helpers.NewEmbed().
 				SetTitle("World's Best Player").
 				AddField("Will steal your wife and kids.",  m.Content, true)
 		}
