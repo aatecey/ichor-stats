@@ -99,28 +99,12 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 				SetTitle("World's Best Player").
 				AddField("Will steal your wife and kids.",  m.Content, true)
 		} else if strings.HasPrefix(m.Content, "!map") {
-
-			mapString := strings.Split(m.Content, " ")
-
-			if len(mapString) > 1 {
-				for _, result := range stats.Segment {
-					log.Println(result.CsMap)
-					log.Println(mapString[1])
-
-					if strings.HasSuffix(result.CsMap, mapString[1]) {
-						embed = helpers.NewEmbed().
-							SetTitle("Map statistics for " + user.Games.CSGO.Name).
-							AddField("Map",  result.CsMap, true).
-							AddField("Kills",  result.LifetimeMapStats.Kills, true).
-							AddField("Assists",  result.LifetimeMapStats.Assists, true).
-							AddField("Deaths",  result.LifetimeMapStats.Deaths, true)
-
-					}
-				}
-			}
+			embed = DetermineMapStats(m.Content, stats, user)
 		}
 
-		_, err = s.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, embed.MessageEmbed)
+		if embed != nil {
+			_, err = s.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, embed.MessageEmbed)
+		}
 
 		if err != nil {
 			log.Println(err)
@@ -138,4 +122,27 @@ func GetRequesterID(discordID string) string {
 	}
 
 	return ""
+}
+
+func DetermineMapStats(data string, stats faceit.Stats, user faceit.User) *helpers.Embed {
+	mapString := strings.Split(data, " ")
+
+	if len(mapString) > 1 {
+		for _, result := range stats.Segment {
+			kills, _ := strconv.ParseFloat(result.LifetimeMapStats.Kills, 64)
+			deaths, _ := strconv.ParseFloat(result.LifetimeMapStats.Deaths, 64)
+
+			if strings.HasSuffix(result.CsMap, mapString[1]) {
+				return helpers.NewEmbed().
+					SetTitle("Map statistics for " + user.Games.CSGO.Name).
+					AddField("Map",  result.CsMap, true).
+					AddField("Kills",  result.LifetimeMapStats.Kills, true).
+					AddField("Assists",  result.LifetimeMapStats.Assists, true).
+					AddField("Deaths",  result.LifetimeMapStats.Deaths, true).
+					AddField("K/D Ratio", strconv.FormatFloat(kills/deaths, 'f', 2, 64), true)
+			}
+		}
+	}
+
+	return nil
 }
