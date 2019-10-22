@@ -71,12 +71,17 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 			AddField("UNKNOWN COMMAND",  m.Content, true)
 
 		if strings.HasPrefix(m.Content, "!stats") {
+			kills, assists, deaths := DetermineTotalStats(m.Content, stats, user)
+
 			embed = helpers.NewEmbed().
 				SetTitle(user.Games.CSGO.Name).
 				AddField("ELO", strconv.Itoa(user.Games.CSGO.ELO), true).
 				AddField("Skill Level", strconv.Itoa(user.Games.CSGO.SkillLevel), true).
-				AddField("Average K/D Ratio", stats.Lifetime.AverageKD, false).
-				AddField("Average Headshots %", stats.Lifetime.AverageHeadshots, true)
+				AddField("Avg. K/D Ratio", stats.Lifetime.AverageKD, false).
+				AddField("Avg. Headshots %", stats.Lifetime.AverageHeadshots, false).
+				AddField("Total Kills", kills, true).
+				AddField("Total Assists", assists, true).
+				AddField("Total Deaths", deaths, true)
 		} else if strings.HasPrefix(m.Content, "!streak") {
 			embed = helpers.NewEmbed().
 				SetTitle(user.Games.CSGO.Name).
@@ -135,14 +140,32 @@ func DetermineMapStats(data string, stats faceit.Stats, user faceit.User) *helpe
 			if strings.HasSuffix(result.CsMap, mapString[1]) {
 				return helpers.NewEmbed().
 					SetTitle("Map statistics for " + user.Games.CSGO.Name).
-					AddField("Map",  result.CsMap, true).
+					AddField("Map",  result.CsMap, false).
 					AddField("Kills",  result.LifetimeMapStats.Kills, true).
 					AddField("Assists",  result.LifetimeMapStats.Assists, true).
 					AddField("Deaths",  result.LifetimeMapStats.Deaths, true).
-					AddField("K/D Ratio", strconv.FormatFloat(kills/deaths, 'f', 2, 64), true)
+					AddField("K/D Ratio", strconv.FormatFloat(kills/deaths, 'f', 2, 64), false)
 			}
 		}
 	}
 
 	return nil
+}
+
+func DetermineTotalStats(data string, stats faceit.Stats, user faceit.User) (string, string, string) {
+	totalKills := 0
+	totalDeaths := 0
+	totalAssists := 0
+
+	for _, result := range stats.Segment {
+		mapKills, _ := strconv.Atoi(result.LifetimeMapStats.Kills)
+		mapDeaths, _ := strconv.Atoi(result.LifetimeMapStats.Deaths)
+		mapAssists, _ := strconv.Atoi(result.LifetimeMapStats.Assists)
+
+		totalKills = totalKills + mapKills
+		totalDeaths = totalDeaths + mapDeaths
+		totalAssists = totalAssists + mapAssists
+	}
+
+	return strconv.Itoa(totalKills), strconv.Itoa(totalAssists), strconv.Itoa(totalDeaths)
 }
