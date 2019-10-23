@@ -14,4 +14,6 @@ func GetFaceitMatch(playerId string) string {
 	return fmt.Sprintf("https://open.faceit.com/data/v4/matches/%s/stats", playerId)
 }
 
-
+func GetFaceitMatchHistory(playerId string) string {
+	return fmt.Sprintf("https://open.faceit.com/data/v4/players/%s/history", playerId)
+}
