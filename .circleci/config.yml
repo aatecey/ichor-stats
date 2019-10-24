@@ -1,0 +1,12 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.13
+    working_directory: /go/src/github.com/aatecey/ichor-stats
+    steps:
+      - checkout
+      - restore_cache:
+        keys:
+          - v1-pkg-cache
+      - run: go build -o stats ichor-stats/src/build
