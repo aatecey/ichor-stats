@@ -33,7 +33,13 @@ type SegmentStats struct {
 }
 
 type LifetimeMapStats struct {
-	Assists       string `json:"Assists"`
+	Assists     string `json:"Assists"`
 	Kills       string `json:"Kills"`
-	Deaths       string `json:"Deaths"`
+	Deaths      string `json:"Deaths"`
+	WinRate		string `json:"Win Rate %"`
+	AverageKD   string `json:"Average K/D Ratio"`
+	TripleKills string `json:"Triple Kills"`
+	QuadroKills string `json:"Quadro Kills"`
+	PentaKills  string `json:"Penta Kills"`
+
 }
