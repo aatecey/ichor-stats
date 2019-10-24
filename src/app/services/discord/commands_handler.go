@@ -39,9 +39,9 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 		var embed *helpers.Embed
 		if len(commandString) == 1 {
-			embed = HandleCommand(commandString[0], stats, user)
+			embed = HandleCommand(commandString[0], stats, user, requesterID)
 		} else {
-			embed = HandleParameterisedCommand(commandString, stats, user)
+			embed = HandleParameterisedCommand(commandString, stats, user, requesterID, s)
 		}
 
 		if embed != nil {
@@ -74,15 +74,16 @@ func GetFaceitStats(apiUrl string) *json.Decoder  {
 	return json.NewDecoder(response.Body)
 }
 
-func HandleParameterisedCommand(command []string, stats faceit.Stats, user faceit.User) *helpers.Embed {
+func HandleParameterisedCommand(command []string, stats faceit.Stats, user faceit.User, requesterID string, session *discordgo.Session) *helpers.Embed {
 	switch trimLeftChar(command[0]) {
 		case "map": return EmbeddedMapStats(stats, user, command[1])
+		case "last": return EmbeddedLastFiveStats(stats, user, command[1], requesterID, session)
 	}
 
 	return nil
 }
 
-func HandleCommand(command string, stats faceit.Stats, user faceit.User) *helpers.Embed {
+func HandleCommand(command string, stats faceit.Stats, user faceit.User, requesterId string) *helpers.Embed {
 	switch trimLeftChar(command) {
 		case "stats": return EmbeddedStats(stats, user)
 		case "streak": return EmbeddedStreak(stats, user)

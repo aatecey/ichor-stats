@@ -1,8 +1,12 @@
 package discord
 
 import (
+	"github.com/bwmarrin/discordgo"
 	"ichor-stats/src/app/models/faceit"
+	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord/helpers"
+	"ichor-stats/src/package/api"
+	"log"
 	"strconv"
 	"strings"
 )
@@ -62,6 +66,78 @@ func EmbeddedMapStats(stats faceit.Stats, user faceit.User, gameMap string) *hel
 	return nil
 }
 
+func EmbeddedLastFiveStats(stats faceit.Stats, user faceit.User, numberOfMatches string, requesterID string, session *discordgo.Session) *helpers.Embed {
+	var matchHistory faceit.Matches
+	matchesErr := GetFaceitStats(api.GetFaceitPlayerMatchHistory(requesterID)).Decode(&matchHistory)
+	if matchesErr != nil {
+		log.Println(matchesErr)
+	}
+
+	matchNumber, err := strconv.Atoi(numberOfMatches)
+	if err != nil {
+		log.Println(err)
+	}
+
+	if matchNumber > 20 {
+		matchNumber = 20
+	}
+
+	var listOfMatches = make([]MatchDetails, matchNumber)
+
+	for i := 0; i < matchNumber; i++ {
+		var match faceit.Match
+		matchErr := GetFaceitStats(api.GetFaceitMatchDetails(matchHistory.MatchItem[i].MatchId)).Decode(&match)
+		if matchErr != nil {
+			log.Println(matchesErr)
+		}
+
+		log.Println(match.Rounds[0].MatchStats.Score)
+
+		listOfMatches[i].MapName = match.Rounds[0].MatchStats.Map
+		listOfMatches[i].Score = match.Rounds[0].MatchStats.Score
+
+		for _, team := range match.Rounds[0].Teams {
+			for _, player := range team.Players {
+				if player.ID == requesterID {
+					listOfMatches[i].Kills = player.Stats.Kills
+					listOfMatches[i].Assists = player.Stats.Assists
+					listOfMatches[i].Deaths = player.Stats.Deaths
+					listOfMatches[i].Result = player.Stats.Result
+					break
+				}
+			}
+		}
+	}
+
+	timeSinceGame := 1
+
+	for _, game := range listOfMatches {
+		outcome := "Win"
+
+		if game.Result == "0" {
+			outcome = "Loss"
+		}
+
+		embeddedMsg := helpers.NewEmbed().
+			SetTitle(user.Games.CSGO.Name + " played " + game.MapName + " " + strconv.Itoa(timeSinceGame) + " game(s) ago:").
+			AddField("Kills", game.Kills, true).
+			AddField("Assists", game.Assists, true).
+			AddField("Deaths", game.Deaths, true).
+			AddField("Result", outcome + " [" + game.Score + "]", false)
+
+		timeSinceGame++
+
+		if embeddedMsg != nil {
+			_, err := session.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, embeddedMsg.MessageEmbed)
+			if err != nil {
+				log.Println(err)
+			}
+		}
+	}
+
+	return nil
+}
+
 func DetermineTotalStats(stats faceit.Stats, user faceit.User) (string, string, string) {
 	totalKills := 0
 	totalDeaths := 0
@@ -78,4 +154,14 @@ func DetermineTotalStats(stats faceit.Stats, user faceit.User) (string, string, 
 	}
 
 	return strconv.Itoa(totalKills), strconv.Itoa(totalAssists), strconv.Itoa(totalDeaths)
+}
+
+
+type MatchDetails struct {
+	MapName	string
+	Kills string
+	Deaths string
+	Assists string
+	Result string
+	Score string
 }
