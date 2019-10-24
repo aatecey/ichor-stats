@@ -3,10 +3,13 @@ jobs:
   build:
     docker:
       - image: circleci/golang:1.13
-    working_directory: /go/src/github.com/aatecey/ichor-stats
     steps:
       - checkout
       - restore_cache:
-        keys:
-          - v1-pkg-cache
+          keys:
+            - go-mod-v1-{{ checksum "go.sum" }}
+      - save_cache:
+          key: go-mod-v1-{{ checksum "go.sum" }}
+          paths:
+            - "/go/pkg/mod"
       - run: go build -o stats ichor-stats/src/build
