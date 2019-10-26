@@ -40,3 +40,12 @@ type PlayerStats struct {
 	KR string `json:"K/R Ratio"`
 	Result string `json:"Result"`
 }
+
+type MatchDetails struct {
+	MapName	string
+	Kills string
+	Deaths string
+	Assists string
+	Result string
+	Score string
+}
