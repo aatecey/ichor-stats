@@ -29,6 +29,7 @@ type Teams struct {
 
 type Players struct {
 	ID string `json:"player_id"`
+	Nickname string `json:"nickname"`
 	Stats PlayerStats `json:"player_stats"`
 }
 
