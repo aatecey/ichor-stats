@@ -58,6 +58,7 @@ func initializeServices(echo *echo.Echo) {
 	appConfig := config.GetConfig()
 
 	discordService := discord.NewDiscordService(appConfig)
+	discord.NewDiscordHandler(&discordService, appConfig)
 
 	faceitService := faceit.NewFaceitService(appConfig, discordService)
 	faceit.NewFaceitHandler(echo, faceitService)
