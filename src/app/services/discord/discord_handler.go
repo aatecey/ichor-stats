@@ -81,7 +81,7 @@ func GetRequesterID(discordID string) string {
 		_ = mapstructure.Decode(players.Players[player], &playerDetails)
 
 		if playerDetails.DiscordId == discordID {
-			return playerDetails.FaceitId
+			return player
 		}
 	}
 
