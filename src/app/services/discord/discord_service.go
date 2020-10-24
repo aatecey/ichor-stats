@@ -36,30 +36,36 @@ func (ds *ServiceDiscord) SendMessage(message string) {
 	}
 }
 
-func (ds *ServiceDiscord) HandleParameterisedCommand(command []string, stats faceit.Stats, user faceit.User, requesterID string, session *discordgo.Session) *helpers.Embed {
-	switch strings.TrimPrefix(command[0], "!") {
-	case "map": return EmbeddedMapStats(stats, user, command[1])
-	case "last": return ds.EmbeddedLastFiveStats(stats, user, command[1], requesterID, session)
+func HandleParameterisedCommand(requesterId string, command []string, user faceit.User, messages *[]*helpers.Embed) {
+	switch trimLeftChar(command[0]) {
+	case "map":
+		EmbeddedMapStats(requesterId, user, command[1], messages)
+	case "last":
+		EmbeddedLastMatchStats(requesterId, user, command[1], messages)
+	case "totals":
+		EmbeddedLastMatchTotals(requesterId, user, command[1], messages)
 	}
-
-	return nil
 }
 
-func (ds *ServiceDiscord) HandleCommand(command string, stats faceit.Stats, user faceit.User, requesterId string) *helpers.Embed {
-	switch strings.TrimPrefix(command, "!") {
-	case "stats": return EmbeddedStats(stats, user)
-	case "streak": return EmbeddedStreak(stats, user)
-	case "recent": return EmbeddedStreak(stats, user)
-	case "green": return EmbeddedGreen()
+func HandleCommand(requesterId string, command string, user faceit.User, messages *[]*helpers.Embed) {
+	switch trimLeftChar(command) {
+	case "stats":
+		EmbeddedStats(requesterId, user, messages)
+	case "streak":
+		EmbeddedStreak(requesterId, user, messages)
+	case "recent":
+		EmbeddedStreak(requesterId, user, messages)
+	case "green":
+		EmbeddedGreen(messages)
 	}
-
-	return nil
 }
 
-func EmbeddedStats(stats faceit.Stats, user faceit.User) *helpers.Embed {
+func EmbeddedStats(requesterId string, user faceit.User, messages *[]*helpers.Embed) {
+	var stats faceit.Stats
+	_ = api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)).Decode(&stats)
 	kills, assists, deaths := DetermineTotalStats(stats, user)
 
-	return helpers.NewEmbed().
+	*messages = append(*messages, helpers.NewEmbed().
 		SetTitle(user.Games.CSGO.Name).
 		AddField("ELO", strconv.Itoa(user.Games.CSGO.ELO), true).
 		AddField("Skill Level", strconv.Itoa(user.Games.CSGO.SkillLevel), true).
@@ -67,11 +73,15 @@ func EmbeddedStats(stats faceit.Stats, user faceit.User) *helpers.Embed {
 		AddField("Avg. Headshots %", stats.Lifetime.AverageHeadshots, false).
 		AddField("Total Kills", kills, true).
 		AddField("Total Assists", assists, true).
-		AddField("Total Deaths", deaths, true)
+		AddField("Total Deaths", deaths, true))
+
+	log.Println("Adding message: " + strconv.Itoa(len(*messages)))
 }
 
+func EmbeddedStreak(requesterId string, user faceit.User, messages *[]*helpers.Embed) {
+	var stats faceit.Stats
+	_ = api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)).Decode(&stats)
 
-func EmbeddedStreak(stats faceit.Stats, user faceit.User) *helpers.Embed {
 	var resultsArray []string
 	for _, result := range stats.Lifetime.RecentResults {
 		if result == "0" {
@@ -81,21 +91,24 @@ func EmbeddedStreak(stats faceit.Stats, user faceit.User) *helpers.Embed {
 		}
 	}
 
-	return helpers.NewEmbed().
+	*messages = append(*messages, helpers.NewEmbed().
 		SetTitle(user.Games.CSGO.Name).
 		AddField("Recent Results (Most recent on right)", strings.Join(resultsArray, ", "), false).
-		AddField("Current Win Streak", stats.Lifetime.CurrentWinStreak, false)
+		AddField("Current Win Streak", stats.Lifetime.CurrentWinStreak, false))
 }
 
-func EmbeddedGreen() *helpers.Embed {
-	return helpers.NewEmbed().
-		SetTitle("Lmao green fkn noob.")
+func EmbeddedGreen(messages *[]*helpers.Embed) {
+	*messages = append(*messages, helpers.NewEmbed().
+		SetTitle("Green stop holding connector"))
 }
 
-func EmbeddedMapStats(stats faceit.Stats, user faceit.User, gameMap string) *helpers.Embed {
+func EmbeddedMapStats(requesterId string, user faceit.User, gameMap string, messages *[]*helpers.Embed) {
+	var stats faceit.Stats
+	_ = api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)).Decode(&stats)
+
 	for _, result := range stats.Segment {
 		if strings.HasSuffix(result.CsMap, gameMap) {
-			return helpers.NewEmbed().
+			*messages = append(*messages, helpers.NewEmbed().
 				SetTitle("Map statistics for " + user.Games.CSGO.Name + " on " + result.CsMap).
 				AddField("Kills", result.LifetimeMapStats.Kills, true).
 				AddField("Assists", result.LifetimeMapStats.Assists, true).
@@ -104,83 +117,108 @@ func EmbeddedMapStats(stats faceit.Stats, user faceit.User, gameMap string) *hel
 				AddField("Quadro Kills", result.LifetimeMapStats.QuadroKills, true).
 				AddField("Penta Kills", result.LifetimeMapStats.PentaKills, true).
 				AddField("Avg. K/D Ratio", result.LifetimeMapStats.AverageKD, true).
-				AddField("Win Rate (%)", result.LifetimeMapStats.WinRate, true)
+				AddField("Win Rate (%)", result.LifetimeMapStats.WinRate, true))
+			return
 		}
 	}
-
-	return nil
 }
 
-func (ds *ServiceDiscord) EmbeddedLastFiveStats(stats faceit.Stats, user faceit.User, numberOfMatches string, requesterID string, session *discordgo.Session) *helpers.Embed {
-	var matchHistory faceit.Matches
-	matchesErr := api.FaceitRequest(api.GetFaceitPlayerMatchHistory(requesterID)).Decode(&matchHistory)
-	if matchesErr != nil {
-		log.Println(matchesErr)
-	}
+func EmbeddedLastMatchStats(requesterID string, user faceit.User, numberOfMatches string, messages *[]*helpers.Embed) {
+	matchHistory, totalMatches := GetMatchHistory(numberOfMatches, requesterID)
 
-	matchNumber, err := strconv.Atoi(numberOfMatches)
-	if err != nil {
-		log.Println(err)
-	}
-
-	if matchNumber > 20 {
-		matchNumber = 20
-	}
-
-	var listOfMatches = make([]faceit.MatchDetails, matchNumber)
-
-	for i := 0; i < matchNumber; i++ {
+	for i := 0; i < totalMatches; i++ {
 		var match faceit.Match
 		matchErr := api.FaceitRequest(api.GetFaceitMatchDetails(matchHistory.MatchItem[i].MatchId)).Decode(&match)
 		if matchErr != nil {
-			log.Println(matchesErr)
+			log.Println(matchErr)
 		}
 
-		log.Println(match.Rounds[0].MatchStats.Score)
+		var stats = GetPlayerDetailsFromMatch(match, requesterID)
 
-		listOfMatches[i].MapName = match.Rounds[0].MatchStats.Map
-		listOfMatches[i].Score = match.Rounds[0].MatchStats.Score
+		outcome := "Win"
+		if stats.Result == "0" {
+			outcome = "Loss"
+		}
 
-		for _, team := range match.Rounds[0].Teams {
-			for _, player := range team.Players {
-				if player.ID == requesterID {
-					listOfMatches[i].Kills = player.Stats.Kills
-					listOfMatches[i].Assists = player.Stats.Assists
-					listOfMatches[i].Deaths = player.Stats.Deaths
-					listOfMatches[i].Result = player.Stats.Result
-					break
+		*messages = append(*messages, helpers.NewEmbed().
+			SetTitle(user.Games.CSGO.Name + " played " + match.Rounds[0].MatchStats.Map + " " + strconv.Itoa(i + 1) + " game(s) ago:").
+			AddField("Kills", stats.Kills, true).
+			AddField("Assists", stats.Assists, true).
+			AddField("Deaths", stats.Deaths, true).
+			AddField("Result", outcome + " [" + match.Rounds[0].MatchStats.Score + "]", false))
+	}
+}
+
+func EmbeddedLastMatchTotals(requesterID string, user faceit.User, numberOfMatches string, messages *[]*helpers.Embed) {
+	matchHistory, totalMatches := GetMatchHistory(numberOfMatches, requesterID)
+
+	totalKills := 0
+	totalAssists := 0
+	totalDeaths := 0
+	totalWins := 0
+
+	for i := 0; i < totalMatches; i++ {
+		var match faceit.Match
+		err := api.FaceitRequest(api.GetFaceitMatchDetails(matchHistory.MatchItem[i].MatchId)).Decode(&match)
+		var stats = GetPlayerDetailsFromMatch(match, requesterID)
+
+		gameKills, err := strconv.Atoi(stats.Kills)
+		gameAssists, err := strconv.Atoi(stats.Assists)
+		gameDeaths, err := strconv.Atoi(stats.Deaths)
+
+		totalKills = totalKills + gameKills
+		totalAssists = totalAssists + gameAssists
+		totalDeaths = totalDeaths + gameDeaths
+
+		if stats.Result == "1" {
+			totalWins++
+		}
+
+		if err != nil {
+			log.Println(err)
+		}
+	}
+
+	*messages = append(*messages, helpers.NewEmbed().
+		SetTitle(user.Games.CSGO.Name+" stats for the last " + strconv.Itoa(totalMatches) + " games:").
+		AddField("Kills", strconv.Itoa(totalKills), true).
+		AddField("Assists", strconv.Itoa(totalAssists), true).
+		AddField("Deaths", strconv.Itoa(totalDeaths), true).
+		AddField("Wins", strconv.Itoa(totalWins), false))
+}
+
+func GetMatchHistory(numberOfMatches string, requesterID string) (history faceit.Matches, totalMatches int) {
+	var matchHistory faceit.Matches
+	matchesErr := api.FaceitRequest(api.GetFaceitPlayerMatchHistory(requesterID)).Decode(&matchHistory)
+	userRequestedMatches, err := strconv.Atoi(numberOfMatches)
+	var matchLimit, err2 = strconv.Atoi(numberOfMatches)
+
+	if err != nil || err2 != nil || matchesErr != nil {
+		log.Println(err)
+	}
+
+	if userRequestedMatches > len(matchHistory.MatchItem) {
+		matchLimit = len(matchHistory.MatchItem)
+	}
+
+	return matchHistory, matchLimit
+}
+
+func GetPlayerDetailsFromMatch(match faceit.Match, requesterID string) (stats faceit.PlayerStats) {
+	for _, team := range match.Rounds[0].Teams {
+		for _, player := range team.Players {
+			if player.ID == requesterID {
+				return faceit.PlayerStats {
+					Kills: player.Stats.Kills,
+					Assists: player.Stats.Assists,
+					Deaths: player.Stats.Deaths,
+					Result: player.Stats.Result,
 				}
 			}
 		}
 	}
 
-	timeSinceGame := 1
-
-	for _, game := range listOfMatches {
-		outcome := "Win"
-
-		if game.Result == "0" {
-			outcome = "Loss"
-		}
-
-		embeddedMsg := helpers.NewEmbed().
-			SetTitle(user.Games.CSGO.Name + " played " + game.MapName + " " + strconv.Itoa(timeSinceGame) + " game(s) ago:").
-			AddField("Kills", game.Kills, true).
-			AddField("Assists", game.Assists, true).
-			AddField("Deaths", game.Deaths, true).
-			AddField("Result", outcome + " [" + game.Score + "]", false)
-
-		timeSinceGame++
-
-		if embeddedMsg != nil {
-			_, err := session.ChannelMessageSendEmbed(ds.Config.CHANNEL_ID, embeddedMsg.MessageEmbed)
-			if err != nil {
-				log.Println(err)
-			}
-		}
-	}
-
-	return nil
+	return faceit.PlayerStats{}
 }
 
 func DetermineTotalStats(stats faceit.Stats, user faceit.User) (string, string, string) {
@@ -199,4 +237,13 @@ func DetermineTotalStats(stats faceit.Stats, user faceit.User) (string, string, 
 	}
 
 	return strconv.Itoa(totalKills), strconv.Itoa(totalAssists), strconv.Itoa(totalDeaths)
+}
+
+func trimLeftChar(s string) string {
+	for i := range s {
+		if i > 0 {
+			return s[i:]
+		}
+	}
+	return s[:0]
 }
