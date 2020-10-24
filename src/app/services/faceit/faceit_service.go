@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 type ServiceFaceit struct {
@@ -96,31 +97,25 @@ func (fs *ServiceFaceit) MatchCreated(webhook faceit.Webhook, messages *[]*helpe
 }
 
 func (fs *ServiceFaceit) MatchReady(webhook faceit.Webhook, messages *[]*helpers.Embed) {
-	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhook.Payload.MatchID), nil)
-	req.Header.Add("Authorization", "Bearer " + fs.Config.FACEIT_API_KEY)
-	response, err := client.Fire(req)
-	body, err := ioutil.ReadAll(response.Body)
-
 	log.Println("Match Ready")
-	log.Println(string(body))
 
-	var stats faceit.Match
-	_ = json.Unmarshal(body, &stats)
+	var message = helpers.NewEmbed()
 
-	for _, s := range stats.Rounds {
-		for _, a := range s.Teams {
-			for _, d := range a.Players {
-				if d.ID == "0d94613d-b736-46ba-b8cd-d2159ddad705" || d.ID == "b26df7d4-8517-4ec6-ab58-708487e5fe60" || d.ID == "b0a57a5a-2f7a-481c-aaa8-8013a83378e3" {
-					*messages = append(*messages, helpers.NewEmbed().
-						SetTitle("Match ready for "+d.Nickname))
-				}
+	for _, team := range webhook.Payload.MatchTeams {
+		var messageValue = ""
+
+		for _, player := range team.Roster {
+			messageValue = messageValue + "Level " + strconv.Itoa(player.SkillLevel) + "\t- " + player.Nickname + "\n"
+
+			if player.ID == webhook.Requester {
+				message.SetTitle("Match Created for " + player.Nickname)
 			}
 		}
+
+		message.AddField("Team " + team.Name[5:len(team.Name)], messageValue, false)
 	}
 
-	if err != nil {
-		log.Println(err)
-	}
+	*messages = append(*messages, message)
 }
 
 func (fs *ServiceFaceit) MatchConfiguring(webhook faceit.Webhook, messages *[]*helpers.Embed) {
