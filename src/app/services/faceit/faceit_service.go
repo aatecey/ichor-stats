@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"ichor-stats/src/app/models/config"
 	"ichor-stats/src/app/models/faceit"
+	"ichor-stats/src/app/models/players"
 	"ichor-stats/src/app/services/discord"
 	"ichor-stats/src/app/services/discord/helpers"
 	"ichor-stats/src/package/api"
@@ -28,7 +29,7 @@ func NewFaceitService(config *config.Configuration, ds discord.ServiceDiscord) S
 
 func (fs *ServiceFaceit) MatchEnd(webhook faceit.Webhook, messages *[]*helpers.Embed) {
 	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhook.Payload.MatchID), nil)
-	req.Header.Add("Authorization", "Bearer " + fs.Config.FACEIT_API_KEY)
+	req.Header.Add("Authorization", "Bearer "+fs.Config.FACEIT_API_KEY)
 	response, err := client.Fire(req)
 	body, err := ioutil.ReadAll(response.Body)
 
@@ -41,7 +42,7 @@ func (fs *ServiceFaceit) MatchEnd(webhook faceit.Webhook, messages *[]*helpers.E
 	for _, s := range stats.Rounds {
 		for _, a := range s.Teams {
 			for _, d := range a.Players {
-				if d.ID == "0d94613d-b736-46ba-b8cd-d2159ddad705" || d.ID == "b26df7d4-8517-4ec6-ab58-708487e5fe60" || d.ID == "b0a57a5a-2f7a-481c-aaa8-8013a83378e3" {
+				if _, playerPresentInMap := players.Players[d.ID]; playerPresentInMap {
 
 					var outcome = "Victory"
 
@@ -83,7 +84,7 @@ func (fs *ServiceFaceit) MatchCreated(webhook faceit.Webhook, messages *[]*helpe
 	for _, s := range stats.Rounds {
 		for _, a := range s.Teams {
 			for _, d := range a.Players {
-				if d.ID == "0d94613d-b736-46ba-b8cd-d2159ddad705" || d.ID == "b26df7d4-8517-4ec6-ab58-708487e5fe60" || d.ID == "b0a57a5a-2f7a-481c-aaa8-8013a83378e3" {
+				if _, playerPresentInMap := players.Players[d.ID]; playerPresentInMap {
 					*messages = append(*messages, helpers.NewEmbed().
 						SetTitle("Match created for "+d.Nickname))
 				}
@@ -107,7 +108,7 @@ func (fs *ServiceFaceit) MatchReady(webhook faceit.Webhook, messages *[]*helpers
 		for _, player := range team.Roster {
 			messageValue = messageValue + "Level " + strconv.Itoa(player.SkillLevel) + "\t- " + player.Nickname + "\n"
 
-			if player.ID == webhook.Requester {
+			if _, playerPresentInMap := players.Players[player.ID]; playerPresentInMap {
 				message.SetTitle("Match Created for " + player.Nickname)
 			}
 		}
@@ -133,7 +134,7 @@ func (fs *ServiceFaceit) MatchConfiguring(webhook faceit.Webhook, messages *[]*h
 	for _, s := range stats.Rounds {
 		for _, a := range s.Teams {
 			for _, d := range a.Players {
-				if d.ID == "0d94613d-b736-46ba-b8cd-d2159ddad705" || d.ID == "b26df7d4-8517-4ec6-ab58-708487e5fe60" || d.ID == "b0a57a5a-2f7a-481c-aaa8-8013a83378e3" {
+				if _, playerPresentInMap := players.Players[d.ID]; playerPresentInMap {
 					*messages = append(*messages, helpers.NewEmbed().
 						SetTitle("Match configuring for "+d.Nickname))
 				}

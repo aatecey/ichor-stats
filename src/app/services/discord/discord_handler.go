@@ -3,8 +3,10 @@ package discord
 import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"github.com/mitchellh/mapstructure"
 	configModel "ichor-stats/src/app/models/config"
 	"ichor-stats/src/app/models/faceit"
+	"ichor-stats/src/app/models/players"
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord/helpers"
 	"ichor-stats/src/package/api"
@@ -74,12 +76,13 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func GetRequesterID(discordID string) string {
-	if discordID == "210457267710066689" {
-		return "0d94613d-b736-46ba-b8cd-d2159ddad705" // Tecey
-	} else if discordID == "210449893892947969" {
-		return "b26df7d4-8517-4ec6-ab58-708487e5fe60" // Dylan
-	} else if discordID == "210438278623526913" {
-		return "b0a57a5a-2f7a-481c-aaa8-8013a83378e3" // Jamie
+	for player := range players.Players {
+		var playerDetails players.PlayerDetails
+		_ = mapstructure.Decode(players.Players[player], &playerDetails)
+
+		if playerDetails.DiscordId == discordID {
+			return playerDetails.FaceitId
+		}
 	}
 
 	return ""
