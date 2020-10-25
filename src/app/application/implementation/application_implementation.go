@@ -9,6 +9,7 @@ import (
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord"
 	"ichor-stats/src/app/services/faceit"
+	"ichor-stats/src/app/services/firebase"
 	"log"
 	"net/http"
 	"time"
@@ -56,6 +57,11 @@ func initialize() *echo.Echo {
 
 func initializeServices(echo *echo.Echo) {
 	appConfig := config.GetConfig()
+
+	firebase.Init()
+
+	//Call to initialise data in database if it ever gets corrupt.
+	//firebase.Setup()
 
 	discordService := discord.NewDiscordService(appConfig)
 	discord.NewDiscordHandler(&discordService, appConfig)

@@ -7,6 +7,9 @@ import (
 	"ichor-stats/src/app/models/faceit"
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord/helpers"
+	"ichor-stats/src/app/services/firebase"
+	"ichor-stats/src/package/api"
+	client "ichor-stats/src/package/http"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -41,7 +44,25 @@ func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
 
 func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 	var messages = make([]*helpers.Embed, 0)
-	fh.FaceitService.MatchEnd(DecipherWebhookData(c), &messages)
+	var webhookData = DecipherWebhookData(c)
+
+	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhookData.Payload.MatchID), nil)
+	req.Header.Add("Authorization", "Bearer "+ fh.FaceitService.Config.FACEIT_API_KEY)
+	response, err := client.Fire(req)
+	body, err := ioutil.ReadAll(response.Body)
+
+	log.Println("Match End")
+	log.Println(string(body))
+
+	var stats faceit.Match
+	_ = json.Unmarshal(body, &stats)
+
+	if err != nil {
+		log.Println(err)
+	}
+
+	firebase.SaveMatch(stats, webhookData.Payload.MatchID)
+	fh.FaceitService.MatchEnd(webhookData, &messages, stats)
 	OutputMessages(fh, &messages)
 	return c.JSON(http.StatusOK, "")
 }

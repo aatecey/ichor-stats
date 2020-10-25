@@ -40,6 +40,12 @@ type PlayerStats struct {
 	KD string `json:"K/D Ratio"`
 	KR string `json:"K/R Ratio"`
 	Result string `json:"Result"`
+	Headshots string `json:"Headshot"`
+	HeadshotPercentage string `json:"Headshots %"`
+	Pentas string `json:"Penta Kills"`
+	Quads string `json:"Quadro Kills"`
+	Triples string `json:"Triple Kills"`
+	MVPs string `json:"MVPs"`
 }
 
 type MatchDetails struct {

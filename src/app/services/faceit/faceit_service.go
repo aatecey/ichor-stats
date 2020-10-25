@@ -27,18 +27,7 @@ func NewFaceitService(config *config.Configuration, ds discord.ServiceDiscord) S
 	}
 }
 
-func (fs *ServiceFaceit) MatchEnd(webhook faceit.Webhook, messages *[]*helpers.Embed) {
-	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhook.Payload.MatchID), nil)
-	req.Header.Add("Authorization", "Bearer "+fs.Config.FACEIT_API_KEY)
-	response, err := client.Fire(req)
-	body, err := ioutil.ReadAll(response.Body)
-
-	log.Println("Match End")
-	log.Println(string(body))
-
-	var stats faceit.Match
-	_ = json.Unmarshal(body, &stats)
-
+func (fs *ServiceFaceit) MatchEnd(webshook faceit.Webhook, messages *[]*helpers.Embed, stats faceit.Match) {
 	for _, s := range stats.Rounds {
 		for _, a := range s.Teams {
 			for _, d := range a.Players {
@@ -62,10 +51,6 @@ func (fs *ServiceFaceit) MatchEnd(webhook faceit.Webhook, messages *[]*helpers.E
 				}
 			}
 		}
-	}
-
-	if err != nil {
-		log.Println(err)
 	}
 }
 
