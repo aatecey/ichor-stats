@@ -27,31 +27,22 @@ func NewFaceitService(config *config.Configuration, ds discord.ServiceDiscord) S
 	}
 }
 
-func (fs *ServiceFaceit) MatchEnd(webshook faceit.Webhook, messages *[]*helpers.Embed, stats faceit.Match) {
-	for _, s := range stats.Rounds {
-		for _, a := range s.Teams {
-			for _, d := range a.Players {
-				if _, playerPresentInMap := players.Players[d.ID]; playerPresentInMap {
+func (fs *ServiceFaceit) MatchEnd(playerFromMatch faceit.Players, messages *[]*helpers.Embed, stats faceit.Match) {
+	var outcome = "Victory"
 
-					var outcome = "Victory"
-
-					if d.Stats.Result == "0" {
-						outcome = "Defeat"
-					}
-
-					*messages = append(*messages, helpers.NewEmbed().
-						SetTitle("Match ended for "+d.Nickname).
-						SetDescription(outcome + " on " + stats.Rounds[0].MatchStats.Map + " [" +
-							stats.Rounds[0].MatchStats.Score + "]").
-						AddField("Kills", d.Stats.Kills, true).
-						AddField("Assists", d.Stats.Assists, true).
-						AddField("Deaths", d.Stats.Deaths, true).
-						AddField("K/D Ratio", d.Stats.KD, true).
-						AddField("K/R Ratio", d.Stats.KR, true))
-				}
-			}
-		}
+	if playerFromMatch.Stats.Result == "0" {
+		outcome = "Defeat"
 	}
+
+	*messages = append(*messages, helpers.NewEmbed().
+		SetTitle("Match ended for "+playerFromMatch.Nickname).
+		SetDescription(outcome+" on "+stats.Rounds[0].MatchStats.Map+" ["+
+			stats.Rounds[0].MatchStats.Score+"]").
+		AddField("Kills", playerFromMatch.Stats.Kills, true).
+		AddField("Assists", playerFromMatch.Stats.Assists, true).
+		AddField("Deaths", playerFromMatch.Stats.Deaths, true).
+		AddField("K/D Ratio", playerFromMatch.Stats.KD, true).
+		AddField("K/R Ratio", playerFromMatch.Stats.KR, true))
 }
 
 func (fs *ServiceFaceit) MatchCreated(webhook faceit.Webhook, messages *[]*helpers.Embed) {

@@ -60,6 +60,9 @@ func initializeServices(echo *echo.Echo) {
 
 	firebase.Init()
 
+	//Call to de-duplicate data in database if it ever gets corrupt.
+	//firebase.DeDupeMatches()
+
 	//Call to initialise data in database if it ever gets corrupt.
 	//firebase.Setup()
 

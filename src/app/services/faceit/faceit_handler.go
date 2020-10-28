@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"github.com/labstack/echo"
 	"ichor-stats/src/app/models/faceit"
+	"ichor-stats/src/app/models/players"
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord/helpers"
 	"ichor-stats/src/app/services/firebase"
@@ -61,9 +62,33 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 		log.Println(err)
 	}
 
-	firebase.SaveMatch(stats, webhookData.Payload.MatchID)
-	fh.FaceitService.MatchEnd(webhookData, &messages, stats)
-	OutputMessages(fh, &messages)
+	for _, round := range stats.Rounds {
+		for _, team := range round.Teams {
+			for _, player := range team.Players {
+				if playerDetails, playerPresentInMap := players.Players[player.ID]; playerPresentInMap {
+					matchesFromDb := firebase.GetMatchStats("3", player.ID)
+
+					var uniqueMatch = true
+
+					for _, match := range matchesFromDb {
+						if match.ID == webhookData.Payload.MatchID {
+							uniqueMatch = false
+							log.Println("This match already exists in the database for " + playerDetails.Name + "[" + match.ID + "]")
+							break
+						}
+					}
+
+					if uniqueMatch {
+						log.Println("This match is unique, saving to database for " + playerDetails.Name + "[" + webhookData.Payload.MatchID + "]")
+						firebase.SaveMatch(player, team, stats, webhookData.Payload.MatchID)
+						fh.FaceitService.MatchEnd(player, &messages, stats)
+						OutputMessages(fh, &messages)
+					}
+				}
+			}
+		}
+	}
+
 	return c.JSON(http.StatusOK, "")
 }
 
