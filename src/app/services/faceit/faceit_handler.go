@@ -44,7 +44,6 @@ func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
 }
 
 func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
-	var messages = make([]*helpers.Embed, 0)
 	var webhookData = DecipherWebhookData(c)
 
 	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhookData.Payload.MatchID), nil)
@@ -66,6 +65,8 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 		for _, team := range round.Teams {
 			for _, player := range team.Players {
 				if playerDetails, playerPresentInMap := players.Players[player.ID]; playerPresentInMap {
+					var messages = make([]*helpers.Embed, 0)
+
 					matchesFromDb := firebase.GetMatchStats("3", player.ID)
 
 					var uniqueMatch = true
