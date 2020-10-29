@@ -60,6 +60,9 @@ func initializeServices(echo *echo.Echo) {
 
 	firebase.Init()
 
+	//Call to update database with faceit games that didnt save correctly
+	//firebase.RetrospectiveUpdate()
+
 	//Call to de-duplicate data in database if it ever gets corrupt.
 	//firebase.DeDupeMatches()
 

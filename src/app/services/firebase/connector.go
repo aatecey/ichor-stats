@@ -2,6 +2,7 @@ package firebase
 
 import (
 	"context"
+	"encoding/json"
 	firebase "firebase.google.com/go"
 	"firebase.google.com/go/db"
 	"github.com/mitchellh/mapstructure"
@@ -43,7 +44,7 @@ func Setup() {
 
 		for _, match := range matchHistory.MatchItem {
 			var matchDetails faceit.Match
-			matchErr := api.FaceitRequest(api.GetFaceitMatchDetails(match.MatchId)).Decode(&matchDetails)
+			matchErr := json.Unmarshal(api.FaceitRequest(api.GetFaceitMatchDetails(match.MatchId)), &matchDetails)
 			if matchErr != nil {
 				log.Println(matchErr)
 			}
@@ -87,7 +88,7 @@ func Setup() {
 	}
 }
 
-func SaveMatch(playerFromMatch faceit.Players, teams faceit.Teams, matchStats faceit.Match, matchId string) {
+func SaveMatch(playerFromMatch faceit.Players, round faceit.Rounds, matchStats faceit.Match, matchId string) {
 	matchesFromDb := GetMatchStats("10000", playerFromMatch.ID)
 
 	var outcome = "Win"
@@ -98,7 +99,7 @@ func SaveMatch(playerFromMatch faceit.Players, teams faceit.Teams, matchStats fa
 
 	match := database.Match{
 		ID:                 matchId,
-		Map:                teams.MatchStats.Map,
+		Map:                round.MatchStats.Map,
 		Result:             outcome,
 		Score:              matchStats.Rounds[0].MatchStats.Score,
 		Kills:              playerFromMatch.Stats.Kills,
@@ -132,9 +133,6 @@ func GetMatchStats(numberOfMatches string, requesterId string) []database.Match 
 	var player database.Player
 
 	ref := client.NewRef(playerDetails.Name)
-
-	//log.Println("Database key " + ref.Key)
-	//log.Println("Database path: " + ref.Path)
 
 	_ = ref.Get(context.Background(), &player)
 
@@ -189,6 +187,94 @@ func DeDupeMatches() {
 		}
 
 		if err := client.NewRef(playerDetails.Name + "Copy").Set(context.Background(), playerCopy); err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
+func RetrospectiveUpdate() {
+	for player := range players.Players {
+
+		matchesViaFaceItApi := make([]database.Match, 0)
+		matchesFromDb := GetMatchStats("10000", player)
+		combinedMatches := make([]database.Match, 0)
+
+		var playerDetails players.PlayerDetails
+		_ = mapstructure.Decode(players.Players[player], &playerDetails)
+
+		log.Println("Requester = " + player)
+		matchHistory, _ := helpers.GetMatchHistory("20", player)
+
+		for _, match := range matchHistory.MatchItem {
+			var matchDetails faceit.Match
+			matchErr := json.Unmarshal(api.FaceitRequest(api.GetFaceitMatchDetails(match.MatchId)), &matchDetails)
+			if matchErr != nil {
+				log.Println(matchErr)
+			}
+
+			var stats = helpers.GetPlayerDetailsFromMatch(matchDetails, player)
+			var mapName = matchDetails.Rounds[0].MatchStats.Map
+
+			outcome := "Win"
+			if stats.Result == "0" {
+				outcome = "Loss"
+			}
+
+			match := database.Match{
+				ID:                 match.MatchId,
+				Map:                mapName,
+				Result:             outcome,
+				Score:              matchDetails.Rounds[0].MatchStats.Score,
+				Kills:              stats.Kills,
+				Assists:            stats.Assists,
+				Deaths:             stats.Deaths,
+				Headshots:          stats.Headshots,
+				HeadshotPercentage: stats.HeadshotPercentage,
+				Pentas:             stats.Pentas,
+				Quads:              stats.Quads,
+				Triples:            stats.Triples,
+				KillDeathRatio:     stats.KD,
+				KillRoundRatio:     stats.KR,
+				MVPs:               stats.MVPs,
+			}
+
+			matchesViaFaceItApi = append(matchesViaFaceItApi, match)
+			log.Println("Length = " + string(len(matchesViaFaceItApi)))
+
+		}
+
+		log.Println("Length = " + string(len(matchesViaFaceItApi)))
+
+		for _, dbMatch := range matchesFromDb {
+			retrySameMatch := true
+			for retrySameMatch {
+				var faceitApiMatch = database.Match{}
+
+				if len(matchesViaFaceItApi) > 0 {
+					faceitApiMatch = matchesViaFaceItApi[0]
+				}
+
+				log.Println("FaceIt Match ID : " + faceitApiMatch.ID)
+				log.Println("DB Match ID : " + dbMatch.ID)
+
+				if faceitApiMatch != (database.Match{}) && dbMatch.ID != faceitApiMatch.ID {
+					combinedMatches = append(combinedMatches, faceitApiMatch)
+				} else {
+					combinedMatches = append(combinedMatches, dbMatch)
+					retrySameMatch = false
+				}
+
+				if len(matchesViaFaceItApi) > 0 {
+					matchesViaFaceItApi = matchesViaFaceItApi[1:]
+				}
+			}
+		}
+
+		player := database.Player{
+			Matches: combinedMatches,
+		}
+
+		if err := client.NewRef(playerDetails.Name + "RetroUpdate").Set(context.Background(), player); err != nil {
 			log.Fatal(err)
 		}
 	}

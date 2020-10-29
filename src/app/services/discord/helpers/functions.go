@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"encoding/json"
 	"ichor-stats/src/app/models/faceit"
 	"ichor-stats/src/package/api"
 	"log"
@@ -10,7 +11,7 @@ import (
 
 func EmbeddedMapStats(requesterId string, user faceit.User, gameMap string, messages *[]*Embed) {
 	var stats faceit.Stats
-	_ = api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)).Decode(&stats)
+	_ = json.Unmarshal(api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)), &stats)
 
 	for _, result := range stats.Segment {
 		if strings.HasSuffix(result.CsMap, gameMap) {
@@ -34,7 +35,7 @@ func EmbeddedLastMatchStats(requesterID string, user faceit.User, numberOfMatche
 
 	for i := 0; i < totalMatches; i++ {
 		var match faceit.Match
-		matchErr := api.FaceitRequest(api.GetFaceitMatchDetails(matchHistory.MatchItem[i].MatchId)).Decode(&match)
+		matchErr := json.Unmarshal(api.FaceitRequest(api.GetFaceitMatchDetails(matchHistory.MatchItem[i].MatchId)), &match)
 		if matchErr != nil {
 			log.Println(matchErr)
 		}
@@ -65,7 +66,7 @@ func EmbeddedLastMatchTotals(requesterID string, user faceit.User, numberOfMatch
 
 	for i := 0; i < totalMatches; i++ {
 		var match faceit.Match
-		err := api.FaceitRequest(api.GetFaceitMatchDetails(matchHistory.MatchItem[i].MatchId)).Decode(&match)
+		err := json.Unmarshal(api.FaceitRequest(api.GetFaceitMatchDetails(matchHistory.MatchItem[i].MatchId)), &match)
 		var stats = GetPlayerDetailsFromMatch(match, requesterID)
 
 		gameKills, err := strconv.Atoi(stats.Kills)
@@ -95,7 +96,9 @@ func EmbeddedLastMatchTotals(requesterID string, user faceit.User, numberOfMatch
 
 func GetMatchHistory(numberOfMatches string, requesterID string) (history faceit.Matches, totalMatches int) {
 	var matchHistory faceit.Matches
-	matchesErr := api.FaceitRequest(api.GetFaceitPlayerMatchHistory(requesterID)).Decode(&matchHistory)
+
+	matchesErr := json.Unmarshal(api.FaceitRequest(api.GetFaceitPlayerMatchHistory(requesterID)), &matchHistory)
+
 	userRequestedMatches, err := strconv.Atoi(numberOfMatches)
 	var matchLimit, err2 = strconv.Atoi(numberOfMatches)
 

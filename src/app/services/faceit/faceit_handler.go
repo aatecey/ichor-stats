@@ -58,7 +58,7 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 	_ = json.Unmarshal(body, &stats)
 
 	if err != nil {
-		log.Println(err)
+		log.Println("Issue decoding finished match - ", err)
 	}
 
 	for _, round := range stats.Rounds {
@@ -81,7 +81,7 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 
 					if uniqueMatch {
 						log.Println("This match is unique, saving to database for " + playerDetails.Name + "[" + webhookData.Payload.MatchID + "]")
-						firebase.SaveMatch(player, team, stats, webhookData.Payload.MatchID)
+						firebase.SaveMatch(player, round, stats, webhookData.Payload.MatchID)
 						fh.FaceitService.MatchEnd(player, &messages, stats)
 						OutputMessages(fh, &messages)
 					}

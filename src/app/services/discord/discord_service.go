@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"ichor-stats/src/app/models/config"
@@ -43,8 +44,12 @@ func HandleParameterisedCommand(requesterId string, command []string, user facei
 		helpers.EmbeddedMapStats(requesterId, user, command[1], messages)
 	case "last":
 		firebase.EmbeddedLastMatchStats(requesterId, user, command[1], messages)
+	case "lastApi":
+		helpers.EmbeddedLastMatchStats(requesterId, user, command[1], messages)
 	case "totals":
 		firebase.EmbeddedLastMatchTotals(requesterId, user, command[1], messages)
+	case "totalsApi":
+		helpers.EmbeddedLastMatchTotals(requesterId, user, command[1], messages)
 	}
 }
 
@@ -63,7 +68,7 @@ func HandleCommand(requesterId string, command string, user faceit.User, message
 
 func EmbeddedStats(requesterId string, user faceit.User, messages *[]*helpers.Embed) {
 	var stats faceit.Stats
-	_ = api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)).Decode(&stats)
+	_ = json.Unmarshal(api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)), &stats)
 	kills, assists, deaths := DetermineTotalStats(stats, user)
 
 	*messages = append(*messages, helpers.NewEmbed().
@@ -81,7 +86,7 @@ func EmbeddedStats(requesterId string, user faceit.User, messages *[]*helpers.Em
 
 func EmbeddedStreak(requesterId string, user faceit.User, messages *[]*helpers.Embed) {
 	var stats faceit.Stats
-	_ = api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)).Decode(&stats)
+	_ = json.Unmarshal(api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)), &stats)
 
 	var resultsArray []string
 	for _, result := range stats.Lifetime.RecentResults {
