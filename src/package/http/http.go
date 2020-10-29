@@ -15,8 +15,6 @@ type Request struct {
 func Fire(req *http.Request) (*http.Response, error) {
 	client := &http.Client{}
 
-	log.Println("Client Fired")
-
 	return retry(5, time.Second, func() (*http.Response, error) {
 		resp, err := client.Do(req)
 
