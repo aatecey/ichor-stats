@@ -5,8 +5,12 @@ import (
 	"encoding/json"
 	"github.com/labstack/echo"
 	"ichor-stats/src/app/models/faceit"
+	"ichor-stats/src/app/models/players"
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord/helpers"
+	"ichor-stats/src/app/services/firebase"
+	"ichor-stats/src/package/api"
+	client "ichor-stats/src/package/http"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -40,9 +44,52 @@ func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
 }
 
 func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
-	var messages = make([]*helpers.Embed, 0)
-	fh.FaceitService.MatchEnd(DecipherWebhookData(c), &messages)
-	OutputMessages(fh, &messages)
+	var webhookData = DecipherWebhookData(c)
+
+	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhookData.Payload.MatchID), nil)
+	req.Header.Add("Authorization", "Bearer "+ fh.FaceitService.Config.FACEIT_API_KEY)
+	response, err := client.Fire(req)
+	body, err := ioutil.ReadAll(response.Body)
+
+	log.Println("Match End")
+	log.Println(string(body))
+
+	var stats faceit.Match
+	_ = json.Unmarshal(body, &stats)
+
+	if err != nil {
+		log.Println("Issue decoding finished match - ", err)
+	}
+
+	for _, round := range stats.Rounds {
+		for _, team := range round.Teams {
+			for _, player := range team.Players {
+				if playerDetails, playerPresentInMap := players.Players[player.ID]; playerPresentInMap {
+					var messages = make([]*helpers.Embed, 0)
+
+					matchesFromDb := firebase.GetMatchStats("3", player.ID)
+
+					var uniqueMatch = true
+
+					for _, match := range matchesFromDb {
+						if match.ID == webhookData.Payload.MatchID {
+							uniqueMatch = false
+							log.Println("This match already exists in the database for " + playerDetails.Name + "[" + match.ID + "]")
+							break
+						}
+					}
+
+					if uniqueMatch {
+						log.Println("This match is unique, saving to database for " + playerDetails.Name + "[" + webhookData.Payload.MatchID + "]")
+						firebase.SaveMatch(player, round, stats, webhookData.Payload.MatchID)
+						fh.FaceitService.MatchEnd(player, &messages, stats)
+						OutputMessages(fh, &messages)
+					}
+				}
+			}
+		}
+	}
+
 	return c.JSON(http.StatusOK, "")
 }
 

@@ -1,6 +1,7 @@
 package discord
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"github.com/mitchellh/mapstructure"
@@ -51,7 +52,7 @@ func MessageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
 		requesterID := GetRequesterID(m.Author.ID)
 
 		var user faceit.User
-		_ = api.FaceitRequest(api.GetFaceitPlayerStats(requesterID)).Decode(&user)
+		_ = json.Unmarshal(api.FaceitRequest(api.GetFaceitPlayerStats(requesterID)), &user)
 
 		command := strings.TrimSpace(m.Content)
 		commandString := strings.Split(command, " ")

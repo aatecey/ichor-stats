@@ -1,30 +1,35 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"ichor-stats/src/app/services/config"
 	client "ichor-stats/src/package/http"
+	"io/ioutil"
 	"log"
 	"net/http"
 )
 
-func FaceitRequest(apiUrl string) *json.Decoder  {
+func FaceitRequest(apiUrl string) []byte  {
 	var bearer = "Bearer " + config.GetConfig().FACEIT_API_KEY
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
+		log.Println("hereeeee")
 		log.Println(err)
 		return nil
 	}
 
 	req.Header.Add("Authorization", bearer)
 	response, err := client.Fire(req)
+
+	log.Println("Client Fired Completed + " + apiUrl)
+
 	if err != nil {
-		log.Println(err)
-		return nil
+		log.Println("In here", err)
+		//return nil
 	}
 
-	return json.NewDecoder(response.Body)
+	body, err := ioutil.ReadAll(response.Body)
+	return body
 }
 
 func GetFaceitPlayerCsgoStats(playerId string) string {
