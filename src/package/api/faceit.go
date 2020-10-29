@@ -13,19 +13,15 @@ func FaceitRequest(apiUrl string) []byte  {
 	var bearer = "Bearer " + config.GetConfig().FACEIT_API_KEY
 	req, err := http.NewRequest("GET", apiUrl, nil)
 	if err != nil {
-		log.Println("hereeeee")
-		log.Println(err)
+		log.Println("Error when forming HTTP request to fire against FaceIt - ", err)
 		return nil
 	}
 
 	req.Header.Add("Authorization", bearer)
 	response, err := client.Fire(req)
 
-	log.Println("Client Fired Completed + " + apiUrl)
-
 	if err != nil {
-		log.Println("In here", err)
-		//return nil
+		log.Println("Error when firing request against FaceIt - ", err)
 	}
 
 	body, err := ioutil.ReadAll(response.Body)
