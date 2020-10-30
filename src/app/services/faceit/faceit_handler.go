@@ -14,6 +14,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 )
 
 type ResponseError struct {
@@ -44,6 +45,10 @@ func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
 }
 
 func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
+	var lockProcessing sync.Mutex
+	lock(lockProcessing)
+	defer unlock(lockProcessing)
+
 	var webhookData = DecipherWebhookData(c)
 
 	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhookData.Payload.MatchID), nil)
@@ -65,7 +70,7 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 		for _, team := range round.Teams {
 			for _, player := range team.Players {
 				if playerDetails, playerPresentInMap := players.Players[player.ID]; playerPresentInMap {
-					var messages = make([]*helpers.Embed, 0)
+					messages := make([]*helpers.Embed, 0)
 
 					matchesFromDb := firebase.GetMatchStats("3", player.ID)
 
@@ -163,4 +168,12 @@ func OutputMessages(fh *FaceitHandler, messages *[]*helpers.Embed) {
 			_, _ = fh.FaceitService.DiscordService.Discord.ChannelMessageSendEmbed(config.GetConfig().CHANNEL_ID, message.MessageEmbed)
 		}
 	}
+}
+
+func lock(mutex sync.Mutex) {
+	log.Println("Locking Processing")
+}
+
+func unlock(mutex sync.Mutex) {
+	log.Println("Unlocking Processing")
 }

@@ -141,10 +141,6 @@ func GetMatchStats(numberOfMatches string, requesterId string) []database.Match 
 		totalMatches = len(player.Matches)
 	}
 
-	for i := 0; i < totalMatches; i++ {
-		log.Println("Match " + player.Matches[i].ID + " - Map " + player.Matches[i].Map)
-	}
-
 	return player.Matches[:totalMatches]
 }
 

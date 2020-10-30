@@ -77,6 +77,7 @@ func (fs *ServiceFaceit) MatchReady(webhook faceit.Webhook, messages *[]*helpers
 	log.Println("Match Ready")
 
 	var message = helpers.NewEmbed()
+	var matchPlayers = ""
 
 	for _, team := range webhook.Payload.MatchTeams {
 		var messageValue = ""
@@ -85,14 +86,18 @@ func (fs *ServiceFaceit) MatchReady(webhook faceit.Webhook, messages *[]*helpers
 			messageValue = messageValue + "Level " + strconv.Itoa(player.SkillLevel) + "\t- " + player.Nickname + "\n"
 
 			if _, playerPresentInMap := players.Players[player.ID]; playerPresentInMap {
-				message.SetTitle("Match Created for " + player.Nickname)
+				if matchPlayers == "" {
+					matchPlayers = player.Nickname
+				} else {
+					matchPlayers = matchPlayers + ", " + player.Nickname
+				}
 			}
 		}
 
 		message.AddField("Team " + team.Name[5:len(team.Name)], messageValue, false)
 	}
 
-	*messages = append(*messages, message)
+	*messages = append(*messages, message.SetTitle("Match Created for " + matchPlayers))
 }
 
 func (fs *ServiceFaceit) MatchConfiguring(webhook faceit.Webhook, messages *[]*helpers.Embed) {
