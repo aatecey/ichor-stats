@@ -15,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"sync"
+	"time"
 )
 
 type ResponseError struct {
@@ -44,10 +45,10 @@ func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
 	c.POST("/custom", handler.CustomMessage)
 }
 
+var lockProcessing sync.Mutex
+
 func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
-	var lockProcessing sync.Mutex
 	lock(lockProcessing)
-	defer unlock(lockProcessing)
 
 	var webhookData = DecipherWebhookData(c)
 
@@ -94,6 +95,9 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 			}
 		}
 	}
+	
+	time.Sleep(2 * time.Second)
+	unlock(lockProcessing)
 
 	return c.JSON(http.StatusOK, "")
 }
