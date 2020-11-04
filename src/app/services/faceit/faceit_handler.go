@@ -98,7 +98,7 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 		}
 	}
 
-	time.Sleep(1 * time.Second)
+	time.Sleep(3 * time.Second)
 	unlock(fh.ConcurrentLock)
 
 	return c.JSON(http.StatusOK, "")
@@ -178,9 +178,11 @@ func OutputMessages(fh *FaceitHandler, messages *[]*helpers.Embed) {
 }
 
 func lock(mutex sync.Mutex) {
+	mutex.Lock()
 	log.Println("Locking Processing")
 }
 
 func unlock(mutex sync.Mutex) {
+	mutex.Unlock()
 	log.Println("Unlocking Processing")
 }
