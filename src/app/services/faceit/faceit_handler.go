@@ -24,6 +24,7 @@ type ResponseError struct {
 
 type FaceitHandler struct {
 	FaceitService ServiceFaceit
+	ConcurrentLock sync.Mutex
 }
 
 type Message struct {
@@ -31,8 +32,11 @@ type Message struct {
 }
 
 func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
+	var lockProcessing sync.Mutex
+
 	handler := &FaceitHandler{
 		FaceitService: fs,
+		ConcurrentLock: lockProcessing,
 	}
 
 	g := e.Group("/api/v1/faceit")
@@ -45,10 +49,8 @@ func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
 	c.POST("/custom", handler.CustomMessage)
 }
 
-var lockProcessing sync.Mutex
-
 func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
-	lock(lockProcessing)
+	lock(fh.ConcurrentLock)
 
 	var webhookData = DecipherWebhookData(c)
 
@@ -95,9 +97,9 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 			}
 		}
 	}
-	
+
 	time.Sleep(2 * time.Second)
-	unlock(lockProcessing)
+	unlock(fh.ConcurrentLock)
 
 	return c.JSON(http.StatusOK, "")
 }
@@ -124,6 +126,8 @@ func (fh *FaceitHandler) MatchConfiguring(c echo.Context) error {
 }
 
 func (fh *FaceitHandler) CustomMessage(c echo.Context) error {
+	lock(fh.ConcurrentLock)
+
 	var messages = make([]*helpers.Embed, 0)
 
 	ctx := c.Request().Context()
@@ -143,6 +147,9 @@ func (fh *FaceitHandler) CustomMessage(c echo.Context) error {
 	}
 
 	OutputMessages(fh, &messages)
+
+	unlock(fh.ConcurrentLock)
+
 	return c.JSON(http.StatusOK, "")
 }
 
