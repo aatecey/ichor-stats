@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"github.com/labstack/echo"
+	"golang.org/x/sync/semaphore"
 	"ichor-stats/src/app/models/faceit"
 	"ichor-stats/src/app/models/players"
 	"ichor-stats/src/app/services/config"
@@ -24,38 +25,54 @@ type ResponseError struct {
 
 type FaceitHandler struct {
 	FaceitService ServiceFaceit
-	ConcurrentLock sync.Mutex
+	Semaphore     *semaphore.Weighted
 }
 
 type Message struct {
 	Body string `json:"body"`
 }
 
-func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
-	var lockProcessing sync.Mutex
+func (fh *FaceitHandler) Limiter(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		if fh.Semaphore.TryAcquire(1) {
+			defer fh.Semaphore.Release(1)
 
+			if err := next(c); err != nil {
+				c.Error(err)
+			}
+
+			time.Sleep(time.Second * 5)
+		} else {
+			log.Println("Concurrent requests - You are blocked.")
+		}
+
+		return nil
+	}
+}
+
+func NewFaceitHandler(e *echo.Echo, fs ServiceFaceit) {
 	handler := &FaceitHandler{
 		FaceitService: fs,
-		ConcurrentLock: lockProcessing,
+		Semaphore: semaphore.NewWeighted(1),
 	}
 
 	g := e.Group("/api/v1/faceit")
+	g.Use(handler.Limiter)
 	g.POST("/match-end", handler.MatchEnd)
 	g.POST("/match-created", handler.MatchCreated)
 	g.POST("/match-ready", handler.MatchReady)
 	g.POST("/match-configuring", handler.MatchConfiguring)
 
 	c := e.Group("/message")
+	c.Use(handler.Limiter)
 	c.POST("/custom", handler.CustomMessage)
 }
 
 func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
-	lock(fh.ConcurrentLock)
-
 	var webhookData = DecipherWebhookData(c)
 
 	req, err := http.NewRequest("GET", api.GetFaceitMatch(webhookData.Payload.MatchID), nil)
-	req.Header.Add("Authorization", "Bearer "+ fh.FaceitService.Config.FACEIT_API_KEY)
+	req.Header.Add("Authorization", "Bearer "+fh.FaceitService.Config.FACEIT_API_KEY)
 	response, err := client.Fire(req)
 	body, err := ioutil.ReadAll(response.Body)
 
@@ -97,9 +114,6 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 			}
 		}
 	}
-
-	time.Sleep(3 * time.Second)
-	unlock(fh.ConcurrentLock)
 
 	return c.JSON(http.StatusOK, "")
 }
