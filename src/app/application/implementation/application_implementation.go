@@ -69,6 +69,9 @@ func initializeServices(echo *echo.Echo) {
 	//Call to initialise data in database if it ever gets corrupt.
 	//firebase.Setup()
 
+	//Call to backup database data for each player.
+	//firebase.Backup()
+
 	discordService := discord.NewDiscordService(appConfig)
 	discord.NewDiscordHandler(&discordService, appConfig)
 

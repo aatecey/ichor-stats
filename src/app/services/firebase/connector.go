@@ -188,6 +188,25 @@ func DeDupeMatches() {
 	}
 }
 
+func Backup() {
+	for player := range players.Players {
+		matchesFromDb := GetMatchStats("10000", player)
+
+		var playerDetails players.PlayerDetails
+		_ = mapstructure.Decode(players.Players[player], &playerDetails)
+
+		log.Println("Matches backed up for " + playerDetails.Name)
+
+		player := database.Player {
+			Matches: matchesFromDb,
+		}
+
+		if err := client.NewRef(playerDetails.Name + "Backup").Set(context.Background(), player); err != nil {
+			log.Fatal(err)
+		}
+	}
+}
+
 func RetrospectiveUpdate() {
 	for player := range players.Players {
 

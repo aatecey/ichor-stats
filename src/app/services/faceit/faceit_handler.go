@@ -98,7 +98,7 @@ func (fh *FaceitHandler) MatchEnd(c echo.Context) error {
 		}
 	}
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(1 * time.Second)
 	unlock(fh.ConcurrentLock)
 
 	return c.JSON(http.StatusOK, "")
@@ -126,8 +126,6 @@ func (fh *FaceitHandler) MatchConfiguring(c echo.Context) error {
 }
 
 func (fh *FaceitHandler) CustomMessage(c echo.Context) error {
-	lock(fh.ConcurrentLock)
-
 	var messages = make([]*helpers.Embed, 0)
 
 	ctx := c.Request().Context()
@@ -147,9 +145,6 @@ func (fh *FaceitHandler) CustomMessage(c echo.Context) error {
 	}
 
 	OutputMessages(fh, &messages)
-
-	time.Sleep(2 * time.Second)
-	unlock(fh.ConcurrentLock)
 
 	return c.JSON(http.StatusOK, "")
 }
