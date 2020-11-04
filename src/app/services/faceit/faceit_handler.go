@@ -148,6 +148,7 @@ func (fh *FaceitHandler) CustomMessage(c echo.Context) error {
 
 	OutputMessages(fh, &messages)
 
+	time.Sleep(2 * time.Second)
 	unlock(fh.ConcurrentLock)
 
 	return c.JSON(http.StatusOK, "")
