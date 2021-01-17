@@ -18,7 +18,7 @@ RUN dir
 # Build the Go app
 RUN go build -o main ./src/build
 
-# Expose port 8080 to the outside world
+# Expose port 5001 to the outside world
 EXPOSE 5001
 
 # Command to run the executable
