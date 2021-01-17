@@ -1,17 +1,11 @@
 package discord
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"ichor-stats/src/app/models/config"
-	"ichor-stats/src/app/models/faceit"
-	"ichor-stats/src/app/services/discord/helpers"
-	"ichor-stats/src/app/services/firebase"
-	"ichor-stats/src/package/api"
-	"log"
-	"strconv"
-	"strings"
+	"ichor-stats/src/app/services/calls"
+	"ichor-stats/src/package/discord"
 )
 
 type ServiceDiscord struct {
@@ -38,92 +32,28 @@ func (ds *ServiceDiscord) SendMessage(message string) {
 	}
 }
 
-func HandleParameterisedCommand(requesterId string, command []string, user faceit.User, messages *[]*helpers.Embed) {
+func HandleParameterisedCommand(playerName string, command []string, messages *[]*discord.Embed) {
 	switch trimLeftChar(command[0]) {
 	case "map":
-		helpers.EmbeddedMapStats(requesterId, user, command[1], messages)
+		calls.MapStats(playerName, command[1], messages)
 	case "last":
-		firebase.EmbeddedLastMatchStats(requesterId, user, command[1], messages)
-	case "lastApi":
-		helpers.EmbeddedLastMatchStats(requesterId, user, command[1], messages)
+		calls.LastMatchStats(playerName, command[1], "false", messages)
 	case "totals":
-		firebase.EmbeddedLastMatchTotals(requesterId, user, command[1], messages)
-	case "totalsApi":
-		helpers.EmbeddedLastMatchTotals(requesterId, user, command[1], messages)
+		calls.LastMatchTotals(playerName, command[1], "false", messages)
 	}
 }
 
-func HandleCommand(requesterId string, command string, user faceit.User, messages *[]*helpers.Embed) {
+func HandleCommand(playerName string, command string, messages *[]*discord.Embed) {
 	switch trimLeftChar(command) {
 	case "stats":
-		EmbeddedStats(requesterId, user, messages)
+		calls.Stats(playerName, messages)
 	case "streak":
-		EmbeddedStreak(requesterId, user, messages)
+		calls.Streak(playerName, "false", messages)
 	case "recent":
-		EmbeddedStreak(requesterId, user, messages)
+		calls.Streak(playerName, "false", messages)
 	case "green":
-		EmbeddedGreen(messages)
+		calls.Green(messages)
 	}
-}
-
-func EmbeddedStats(requesterId string, user faceit.User, messages *[]*helpers.Embed) {
-	var stats faceit.Stats
-	_ = json.Unmarshal(api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)), &stats)
-	kills, assists, deaths := DetermineTotalStats(stats, user)
-
-	*messages = append(*messages, helpers.NewEmbed().
-		SetTitle(user.Games.CSGO.Name).
-		AddField("ELO", strconv.Itoa(user.Games.CSGO.ELO), true).
-		AddField("Skill Level", strconv.Itoa(user.Games.CSGO.SkillLevel), true).
-		AddField("Avg. K/D Ratio", stats.Lifetime.AverageKD, false).
-		AddField("Avg. Headshots %", stats.Lifetime.AverageHeadshots, false).
-		AddField("Total Kills", kills, true).
-		AddField("Total Assists", assists, true).
-		AddField("Total Deaths", deaths, true))
-
-	log.Println("Adding message: " + strconv.Itoa(len(*messages)))
-}
-
-func EmbeddedStreak(requesterId string, user faceit.User, messages *[]*helpers.Embed) {
-	var stats faceit.Stats
-	_ = json.Unmarshal(api.FaceitRequest(api.GetFaceitPlayerCsgoStats(requesterId)), &stats)
-
-	var resultsArray []string
-	for _, result := range stats.Lifetime.RecentResults {
-		if result == "0" {
-			resultsArray = append(resultsArray, "L")
-		} else {
-			resultsArray = append(resultsArray, "W")
-		}
-	}
-
-	*messages = append(*messages, helpers.NewEmbed().
-		SetTitle(user.Games.CSGO.Name).
-		AddField("Recent Results (Most recent on right)", strings.Join(resultsArray, ", "), false).
-		AddField("Current Win Streak", stats.Lifetime.CurrentWinStreak, false))
-}
-
-func EmbeddedGreen(messages *[]*helpers.Embed) {
-	*messages = append(*messages, helpers.NewEmbed().
-		SetTitle("Green stop holding connector"))
-}
-
-func DetermineTotalStats(stats faceit.Stats, user faceit.User) (string, string, string) {
-	totalKills := 0
-	totalDeaths := 0
-	totalAssists := 0
-
-	for _, result := range stats.Segment {
-		mapKills, _ := strconv.Atoi(result.LifetimeMapStats.Kills)
-		mapDeaths, _ := strconv.Atoi(result.LifetimeMapStats.Deaths)
-		mapAssists, _ := strconv.Atoi(result.LifetimeMapStats.Assists)
-
-		totalKills = totalKills + mapKills
-		totalDeaths = totalDeaths + mapDeaths
-		totalAssists = totalAssists + mapAssists
-	}
-
-	return strconv.Itoa(totalKills), strconv.Itoa(totalAssists), strconv.Itoa(totalDeaths)
 }
 
 func trimLeftChar(s string) string {
