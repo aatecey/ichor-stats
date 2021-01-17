@@ -8,6 +8,8 @@ import (
 	"net/http"
 )
 
+var ENDPOINT = "http://40.121.59.132:5000"
+
 func ApiRequest(apiUrl string, numberOfMatches string, playerName string, oldestMatchFirst string) []byte {
 	var jsonStr = []byte(`{"matchCount":"` + numberOfMatches + `","oldestMatchFirst":` + oldestMatchFirst + `,"name":"` + playerName + `"}`)
 
@@ -29,13 +31,13 @@ func ApiRequest(apiUrl string, numberOfMatches string, playerName string, oldest
 }
 
 func GetMatchStatsForPlayerEndpoint() string {
-	return "http://127.0.0.1:5000/match/stats"
+	return ENDPOINT + "/match/stats"
 }
 
 func GetAllSinglePlayerStatsEndpoint() string {
-	return "http://127.0.0.1:5000/player/stats"
+	return ENDPOINT + "/player/stats"
 }
 
 func GetLifetimePlayerStatsEndpoint() string {
-	return "http://127.0.0.1:5000/player/lifetime"
+	return ENDPOINT + "/player/lifetime"
 }
