@@ -8,8 +8,6 @@ import (
 	"ichor-stats/src/app/application"
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord"
-	"ichor-stats/src/app/services/faceit"
-	"ichor-stats/src/app/services/firebase"
 	"log"
 	"net/http"
 	"time"
@@ -31,7 +29,6 @@ func (a *app) Run() {
 	loadedConfig := config.GetConfig()
 	log.Println(loadedConfig.DISCORD_BOT_ID)
 	log.Println(loadedConfig.CHANNEL_ID)
-	log.Println(loadedConfig.FACEIT_API_KEY)
 
 	log.Println("Service listening on " + echo.Server.Addr)
 	err := graceful.ListenAndServe(echo.Server, 5 * time.Second)
@@ -58,23 +55,6 @@ func initialize() *echo.Echo {
 func initializeServices(echo *echo.Echo) {
 	appConfig := config.GetConfig()
 
-	firebase.Init()
-
-	//Call to update database with faceit games that didnt save correctly
-	//firebase.RetrospectiveUpdate()
-
-	//Call to de-duplicate data in database if it ever gets corrupt.
-	//firebase.DeDupeMatches()
-
-	//Call to initialise data in database if it ever gets corrupt.
-	//firebase.Setup()
-
-	//Call to backup database data for each player.
-	//firebase.Backup()
-
 	discordService := discord.NewDiscordService(appConfig)
 	discord.NewDiscordHandler(&discordService, appConfig)
-
-	faceitService := faceit.NewFaceitService(appConfig, discordService)
-	faceit.NewFaceitHandler(echo, faceitService)
 }
