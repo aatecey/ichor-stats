@@ -29,13 +29,13 @@ func ApiRequest(apiUrl string, numberOfMatches string, playerName string, oldest
 }
 
 func GetMatchStatsForPlayerEndpoint() string {
-	return "http://127.0.0.1:5001/match/stats"
+	return "http://127.0.0.1:5000/match/stats"
 }
 
 func GetAllSinglePlayerStatsEndpoint() string {
-	return "http://127.0.0.1:5001/player/stats"
+	return "http://127.0.0.1:5000/player/stats"
 }
 
 func GetLifetimePlayerStatsEndpoint() string {
-	return "http://127.0.0.1:5001/player/lifetime"
+	return "http://127.0.0.1:5000/player/lifetime"
 }

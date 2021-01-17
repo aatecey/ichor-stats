@@ -48,7 +48,7 @@ func initializeMiddleWare(e *echo.Echo) {
 
 func initialize() *echo.Echo {
 	echo := echo.New()
-	echo.Server.Addr = ":" + "5000"
+	echo.Server.Addr = ":" + "5001"
 	return echo
 }
 
