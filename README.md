@@ -9,3 +9,9 @@ Go compiles to a single executable binary
 Run it like any other executable
 
 `./stats`
+
+### Associated API application
+https://github.com/gingajamie/Ichor-API
+
+### Associated Dashboard application
+https://github.com/gingajamie/Ichor-Dashboard
