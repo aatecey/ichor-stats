@@ -100,9 +100,9 @@ func LastMatchTotals(playerName string, numberOfMatches string, oldestMatchFirst
 
 	*messages = append(*messages, discord.NewEmbed().
 		SetTitle(playerName + " stats for the last "+strconv.Itoa(stats[playerName].TotalMatches) + " games:").
-		AddField("Kills", strconv.Itoa(stats[playerName].Kills[stats[playerName].TotalMatches - 1]), true).
+		AddField("Kills", strconv.Itoa(stats[playerName].Kills[stats[playerName].TotalMatches]), true).
 		AddField("Assists", strconv.Itoa(stats[playerName].Assists), true).
-		AddField("Deaths", strconv.Itoa(stats[playerName].Deaths[stats[playerName].TotalMatches - 1]), true).
+		AddField("Deaths", strconv.Itoa(stats[playerName].Deaths[stats[playerName].TotalMatches]), true).
 		AddField("Wins", strconv.Itoa(stats[playerName].Wins), false))
 }
 
