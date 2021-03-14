@@ -11,8 +11,10 @@ import (
 
 type ResponseJson struct {
 	TotalMatches int            `json:"Total Matches"`
-	Kills        []int          `json:"Kills"`
-	Deaths       []int          `json:"Deaths"`
+	TotalKills	 int			`json:"Total Kills"`
+	TotalDeaths	 int			`json:"Total Deaths"`
+	KillsArray   []int          `json:"KillsArray"`
+	DeathsArray  []int          `json:"DeathsArray"`
 	Assists      int            `json:"Assists"`
 	Triples      int            `json:"Triples"`
 	Quads        int            `json:"Quads"`
@@ -100,9 +102,9 @@ func LastMatchTotals(playerName string, numberOfMatches string, oldestMatchFirst
 
 	*messages = append(*messages, discord.NewEmbed().
 		SetTitle(playerName + " stats for the last "+strconv.Itoa(stats[playerName].TotalMatches) + " games:").
-		AddField("Kills", strconv.Itoa(stats[playerName].Kills[stats[playerName].TotalMatches]), true).
+		AddField("Kills", strconv.Itoa(stats[playerName].TotalKills), true).
 		AddField("Assists", strconv.Itoa(stats[playerName].Assists), true).
-		AddField("Deaths", strconv.Itoa(stats[playerName].Deaths[stats[playerName].TotalMatches]), true).
+		AddField("Deaths", strconv.Itoa(stats[playerName].TotalDeaths), true).
 		AddField("Wins", strconv.Itoa(stats[playerName].Wins), false))
 }
 

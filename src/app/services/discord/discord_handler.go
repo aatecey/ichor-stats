@@ -12,7 +12,7 @@ import (
 	"strings"
 )
 
-func NewDiscordHandler(ds *ServiceDiscord, config *configModel.Configuration) {
+func NewDiscordHandler(config *configModel.Configuration) {
 	dc, err := discordgo.New("Bot " + config.DISCORD_BOT_ID)
 	if err != nil {
 		fmt.Println(err)

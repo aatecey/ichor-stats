@@ -2,13 +2,12 @@ package api
 
 import (
 	"bytes"
+	"ichor-stats/src/app/services/config"
 	client "ichor-stats/src/package/http"
 	"io/ioutil"
 	"log"
 	"net/http"
 )
-
-var ENDPOINT = "http://40.121.59.132:5000"
 
 func ApiRequest(apiUrl string, numberOfMatches string, playerName string, oldestMatchFirst string) []byte {
 	var jsonStr = []byte(`{"matchCount":"` + numberOfMatches + `","oldestMatchFirst":` + oldestMatchFirst + `,"name":"` + playerName + `"}`)
@@ -31,13 +30,13 @@ func ApiRequest(apiUrl string, numberOfMatches string, playerName string, oldest
 }
 
 func GetMatchStatsForPlayerEndpoint() string {
-	return ENDPOINT + "/match/stats"
+	return config.GetConfig().API_ENDPOINT + "/match/stats"
 }
 
 func GetAllSinglePlayerStatsEndpoint() string {
-	return ENDPOINT + "/player/stats"
+	return config.GetConfig().API_ENDPOINT + "/player/stats"
 }
 
 func GetLifetimePlayerStatsEndpoint() string {
-	return ENDPOINT + "/player/lifetime"
+	return config.GetConfig().API_ENDPOINT + "/player/lifetime"
 }

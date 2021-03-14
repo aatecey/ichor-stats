@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/tylerb/graceful"
 	"ichor-stats/src/app/application"
+	"ichor-stats/src/app/services/api/endpoints"
 	"ichor-stats/src/app/services/config"
 	"ichor-stats/src/app/services/discord"
 	"log"
@@ -16,7 +17,6 @@ import (
 type app struct {
 }
 
-// NewApplication will create a new application object representation of package.Application interface
 func NewApplication() application.Application {
 	return &app{}
 }
@@ -40,7 +40,7 @@ func (a *app) Run() {
 func initializeMiddleWare(e *echo.Echo) {
 	e.Use(middleware.Logger())
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"https://ichor-stats.azurewebsites.net"},
+		AllowOrigins: []string{"https://ichor-stats.azurewebsites.net", "*"},
 		AllowMethods: []string{http.MethodGet, http.MethodHead, http.MethodPut, http.MethodPatch, http.MethodPost, http.MethodDelete},
 		AllowHeaders: []string{"Accept", "Accept-Language", "Content-Type"},
 	}))
@@ -56,5 +56,10 @@ func initializeServices(echo *echo.Echo) {
 	appConfig := config.GetConfig()
 
 	discordService := discord.NewDiscordService(appConfig)
-	discord.NewDiscordHandler(&discordService, appConfig)
+	discord.NewDiscordHandler(appConfig)
+
+	customHandler := &endpoints.MessageEndpointHandler{
+		DiscordService: discordService,
+	}
+	customHandler.Init(echo, discordService)
 }
