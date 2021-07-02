@@ -141,9 +141,11 @@ func Streak(playerName string, oldestMatchFirst string, messages *[]*discord.Emb
 			if !winStreakEnd {
 				winStreak++
 			}
-		} else if len(resultsArray) < 5 || !winStreakEnd {
-			resultsArray = append(resultsArray, "L")
+		} else {
 			winStreakEnd = true
+			if len(resultsArray) < 5 {
+				resultsArray = append(resultsArray, "L")
+			}
 		}
 	}
 
