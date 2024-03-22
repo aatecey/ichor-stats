@@ -56,13 +56,3 @@ func retry(attempts int, sleep time.Duration, fn func() (*http.Response, error))
 type stop struct {
 	error
 }
-
-type Response struct {
-	Errors []Errors `json:"errors"`
-}
-
-type Errors struct {
-	Message string `json:"message"`
-	Code string `json:"code"`
-	HttpStatus int `json:"http_status"`
-}
